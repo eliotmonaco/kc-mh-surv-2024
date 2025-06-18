@@ -1,0 +1,131 @@
+---
+title: "CCBHC proximity analysis"
+output: html_notebook
+---
+
+# Purpose
+
+Test for a correlation between 1) a respondent's answer to Q12 (awareness of free MH services in KC) and 2) a respondent's proximity to a CCBHC (shortest great circle distance to a CCBHC).
+
+The list of CCBHCs in Missouri were found on the Missouri Department of Mental Health [website][dmh]. Site addresses were copied from each organization's website. Only locations in Kansas City that offer outpatient treatment are used. Addresses were geocoded by the Census Geocoder (US Census Bureau) using the tidygeocoder package.
+
+Lat/lon coordinates for each survey respondent's residence were provided by ETC at the block level for the protection of respondents' identities. These are used as a proxy for the actual place of residence.
+
+Great circle distances are calculated between each respondent point and CCBHC. The shortest distance is kept for each respondent. The great circle distance does not take into account the actual walking or driving distance (or time) nor any permanent or temporary obstacles that might disproportionately increase that distance (e.g., highways, water ways, infrastructure, or road closures) between a respondent's residence and the nearest CCBHC.
+
+[dmh]:https://dmh.mo.gov/certified-community-behavioral-health
+
+# Set up environment and import data
+
+```{r message=FALSE}
+library(tidyverse)
+library(sf)
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
+```
+
+# Prep data
+
+Convert respondent lat/lon coordinates to points.
+
+```{r}
+q12 <- st_as_sf(
+  mhsurv |>
+    select(id, block_lon, block_lat, response = q12) |>
+    drop_na(response),
+  coords = c("block_lon", "block_lat"),
+  crs = 4269
+)
+```
+
+Calculate great circle distances between respondents and CCBHCs (KC sites only).
+
+```{r}
+ccbhc_dist <- as.data.frame(
+  st_distance(
+    q12,
+    ccbhc_sites |>
+      filter(city == "Kansas City")
+  )
+)
+
+names(ccbhc_dist) <- paste0("dist", 1:ncol(ccbhc_dist))
+```
+
+Keep the shortest distance.
+
+```{r}
+q12$dist <- apply(ccbhc_dist, 1, min)
+```
+
+Convert to miles.
+
+```{r}
+q12$dist <- q12$dist / 1609.34
+```
+
+# Plot and test data
+
+```{r}
+kc_pal <- c("#318CCC", "#F04C43")
+```
+
+```{r}
+q12 |>
+  ggplot(aes(x = response, y = dist, fill = response)) +
+  geom_boxplot(alpha = .8) +
+  scale_fill_manual(values = kc_pal)
+```
+
+Mean and median distance to a Kansas City CCBHC.
+
+```{r}
+mean(q12$dist)
+```
+
+```{r}
+median(q12$dist)
+```
+
+```{r}
+q12 |>
+  ggplot(aes(x = dist, fill = response)) +
+  geom_histogram(position = "identity", alpha = .6) +
+  scale_fill_manual(values = kc_pal)
+```
+
+Test for normality.
+
+```{r}
+shapiro.test(q12$dist[q12$response == "Yes"])
+shapiro.test(q12$dist[q12$response == "No"])
+```
+
+```{r}
+qqnorm(q12$dist[q12$response == "Yes"])
+qqline(q12$dist[q12$response == "Yes"])
+```
+
+```{r}
+qqnorm(q12$dist[q12$response == "No"])
+qqline(q12$dist[q12$response == "No"])
+```
+
+Compare variances.
+
+```{r}
+var.test(dist ~ response, data = q12)
+```
+
+Mann-Whitney U test.
+
+```{r}
+wilcox.test(
+  x = q12$dist[q12$response == "Yes"],
+  y = q12$dist[q12$response == "No"],
+  alternative = "less"
+)
+```

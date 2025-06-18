@@ -1,0 +1,298 @@
+---
+title: "CHA plots"
+output:
+  html_notebook:
+    toc: false
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+library(sf)
+# library(leaflet)
+```
+
+```{r}
+source("fn.R")
+```
+
+```{r}
+# cbq <- readRDS("../data/2-final/codebook_question_data.rds")
+# surv_demo <- readRDS("../data/2-final/survey_demographic_data.rds")
+# codebook <- readRDS("../data/2-final/mh_codebook.rds")
+# mh_sum <- readRDS("../data/2-final/summarized_results.rds")
+# mh <- readRDS("../data/2-final/scored_results.rds")
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+```
+
+```{r}
+mhsum <- list()
+mhplots <- list()
+```
+
+# Map
+
+```{r}
+kctracts <- st_transform(kcData::sf_tract_2023, 4326)
+kcpop <- kcData::acs5_tract_2023 |>
+  filter(grepl("^B01003", variable))
+```
+
+```{r}
+surv_points <- st_as_sf(
+  surv_demo,
+  coords = c("block_lon", "block_lat"),
+  crs = 4326
+)
+```
+
+```{r}
+surv_points <- surv_points |>
+  st_join(kctracts[, c("GEOID", "geometry")], join = st_within)
+```
+
+```{r}
+tract_counts <- surv_points |>
+  group_by(GEOID) |>
+  count() |>
+  as.data.frame()
+```
+
+```{r}
+kctracts <- kctracts |>
+  left_join(tract_counts[, c("GEOID", "n")], by = "GEOID") |>
+  left_join(kcpop[, c("GEOID", "estimate")], by = "GEOID") |>
+  rename(n_sampled = n) |>
+  replace_na(list(n_sampled = 0))
+```
+
+```{r}
+kctracts <- kctracts |>
+  mutate(kcpop = kc_area_pct / 100 * estimate) |>
+  mutate(pct_sampled = setmeup::pct(n_sampled, kcpop, 8)) |>
+  mutate(n_sampled_per_1k = n_sampled * 1000 / kcpop) |>
+  replace_na(list(
+    pct_sampled = 0,
+    n_sampled_per_1k = 0
+  ))
+```
+
+```{r}
+pal <- colorNumeric(
+  palette = "Blues",
+  domain = kctracts$n_sampled_per_1k
+)
+```
+
+```{r}
+kcmap <- leaflet(kctracts) |>
+  addProviderTiles("OpenStreetMap") |>
+  addPolygons(
+    weight = .5,
+    fillColor = ~pal(n_sampled_per_1k),
+    fillOpacity = 1
+  ) |>
+  addLegend(
+    position = "bottomright",
+    pal = pal,
+    values = ~n_sampled_per_1k,
+    opacity = 1,
+    title = "Pop. sampled<br>(per 1,000<br>residents)"
+  )
+
+# kcmap
+```
+
+# Questions
+
+## Pre/post Covid mental health
+
+```{r}
+q_covid <- mh_sum$q8$full |>
+  mutate(defn = factor(defn, levels = c("Worse", "Better", "About the same")))
+```
+
+```{r}
+mhplots$q_covid2 <- q_covid |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
+  mh_barplot(
+    x = defn,
+    y = pct,
+    label = label,
+    fill = defn,
+    position = "grouped",
+    legend = FALSE,
+    caption = paste0("n = ", unique(q_covid$n_total))
+  ) +
+  xlab("") +
+  ylab("%\n") +
+  scale_fill_viridis_d()
+
+mhplots$q_covid2
+```
+
+## Social isolation
+
+```{r}
+q_isolation <- mh_sum$q13$age |>
+  mutate(defn = sub("\\s\\(.+\\)", "", defn)) |>
+  mutate(defn = factor(defn, levels = c("High", "Medium", "Low"))) |>
+  filter(defn == "High")
+
+n <- q_isolation |>
+  distinct(age_group, .keep_all = TRUE) |>
+  pull(n_total) |>
+  sum()
+```
+
+```{r}
+mhplots$q_isolation <- q_isolation |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
+  mh_barplot(
+    x = age_group,
+    y = pct,
+    label = label,
+    fill = defn,
+    legend = FALSE,
+    caption = paste0("n = ", n)
+  ) +
+  xlab("\nAge range\n") +
+  ylab("%\n") +
+  scale_fill_viridis_d()
+
+mhplots$q_isolation
+```
+
+## Social media use
+
+```{r}
+q_social_media <- mh_sum$q15$full |>
+  mutate(category = "all")
+```
+
+```{r}
+lvl <- mh_sum$q15$full$defn
+lvl <- paste(lvl, "hours")
+lvl <- factor(lvl, levels = lvl)
+
+q_social_media$defn <- lvl
+```
+
+```{r}
+mhplots$q_social_media <- q_social_media |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
+  mh_barplot(
+    x = category,
+    y = pct,
+    label = label,
+    fill = defn,
+    caption = paste0("n = ", unique(q_social_media$n_total))
+  ) +
+  xlab("") +
+  ylab("%\n") +
+  theme(axis.text.x = element_blank()) +
+  scale_fill_manual(values = c("red", "orange", "yellow", "green"))
+
+mhplots$q_social_media
+```
+
+## Treatment
+
+```{r}
+q_treatment <- summarize_results(
+  mh$q10,
+  qvar = "q10",
+  cb_vals = codebook$yesno$val,
+  gpvar = c("race3", "birth_gender")
+) |>
+  rename(val = q10) |>
+  left_join(codebook$yesno, by = "val")
+```
+
+```{r}
+q_treatment <- q_treatment |>
+  mutate(gpvars = paste(race3, birth_gender, sep = ", "))
+
+n <- q_treatment |>
+  distinct(gpvars, .keep_all = TRUE) |>
+  pull(n_total) |>
+  sum()
+```
+
+```{r}
+mhplots$q_treatment <- q_treatment |>
+  filter(defn == "Yes") |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
+  mh_barplot(
+    x = gpvars,
+    y = pct,
+    label = label,
+    fill = defn,
+    legend = FALSE,
+    caption = paste0("n = ", n)
+  ) +
+  xlab("\nAge range\n") +
+  ylab("%\n") +
+  scale_fill_viridis_d()
+
+mhplots$q_treatment
+```
+
+# Save
+
+```{r}
+mapview::mapshot(kcmap, file = "../output/handout/kcmap1.png")
+```
+
+```{r}
+ggsave(
+  filename = "../output/handout/demo-sex.svg",
+  plot = mhplots$demo_sex,
+  width = 6,
+  height = 4,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/demo-race.svg",
+  plot = mhplots$demo_race,
+  width = 7,
+  height = 5,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/demo-age.svg",
+  plot = mhplots$demo_age,
+  width = 4,
+  height = 4,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/q-covid.svg",
+  plot = mhplots$q_covid,
+  width = 6,
+  height = 2,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/q-isolation.svg",
+  plot = mhplots$q_isolation,
+  width = 6,
+  height = 5,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/q-social-media.svg",
+  plot = mhplots$q_social_media,
+  width = 5,
+  height = 6,
+  units = "in"
+)
+ggsave(
+  filename = "../output/handout/q-treatment.svg",
+  plot = mhplots$q_treatment,
+  width = 5,
+  height = 7,
+  units = "in"
+)
+```
+

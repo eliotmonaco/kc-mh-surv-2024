@@ -1,0 +1,350 @@
+---
+title: "Treatment barriers"
+output: html_notebook
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(sf)
+library(kcData)
+library(patchwork)
+```
+
+```{r}
+source("fn.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
+```
+
+```{r}
+kc_pal <- c("#318CCC", "#F04C43")
+mhsum <- list()
+mhplot <- list()
+```
+
+# Q9
+
+```{r}
+qtitle <- cb$prompts$prompt[cb$prompts$number == 9]
+qtitle
+```
+
+```{r}
+mhsum$q09 <- mhsurv |>
+  summarize_results(var = "q9") |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 0), "%"))
+```
+
+```{r}
+mhplot$q09 <- mhsum$q09 |>
+  mh_pie_chart(
+    var = pct,
+    label = label,
+    fill = q9,
+    fill_colors = kc_pal,
+    # title = qtitle,
+    caption = paste("n =", unique(mhsum$q09$total)),
+    annotation_color = "white"
+  )
+
+mhplot$q09
+```
+
+# Q10
+
+```{r}
+qtitle <- cb$prompts$prompt[cb$prompts$number == 10]
+qtitle
+```
+
+```{r}
+mhsum$q10 <- mhsurv |>
+  summarize_results(var = "q10") |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 0), "%"))
+```
+
+```{r}
+mhplot$q10 <- mhsum$q10 |>
+  mh_pie_chart(
+    var = pct,
+    label = label,
+    fill = q10,
+    fill_colors = kc_pal,
+    # title = qtitle,
+    caption = paste("n =", unique(mhsum$q10$total)),
+    annotation_color = "white"
+  ) +
+  theme(
+    plot.margin = margin(0, .5, 0, .5, "inches"),
+    plot.caption = element_text(vjust = 5)
+  )
+
+mhplot$q10
+```
+
+# Q11
+
+```{r}
+qtitle <- cb$prompts$prompt[cb$prompts$number == 11]
+qtitle
+```
+
+```{r}
+# Summarize question parts and join prompts
+mhsum$q11 <- lapply(
+  colnames(mhsurv)[grepl("^q11_\\d", colnames(mhsurv))],
+  \(x) summarize_results(mhsurv, var = x) |>
+    mutate(prompt = cb$prompts$prompt_abbr[cb$prompts$number == sub("q", "", x)]) |>
+    rename(response = {{ x }})
+)
+
+names(mhsum$q11) <- colnames(mhsurv)[grepl("^q11_\\d", colnames(mhsurv))]
+
+# Combine into one table
+mhsum$q11 <- list_rbind(mhsum$q11)
+```
+
+```{r}
+# Order question by percentage of "Yes" responses
+lvl <- mhsum$q11 |>
+  filter(response == "Yes") |>
+  arrange(pct) |>
+  pull(prompt)
+
+mhsum$q11 <- mhsum$q11 |>
+  mutate(prompt = factor(prompt, levels = lvl)) |>
+  filter(response == "Yes") |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 0), "%"))
+```
+
+```{r}
+mhplot$q11 <- mhsum$q11 |>
+  mh_barplot(
+    x = pct,
+    y = prompt,
+    label = label,
+    fill = "#F04C43",
+    legend = FALSE,
+    # title = qtitle,
+    # caption = paste0("n = ", unique(mhsum$q11$total)),
+    annotation_color = "white"
+  ) +
+  xlab("\n%\n") +
+  ylab("") +
+  scale_y_discrete(labels = scales::label_wrap(32)) +
+  annotate(
+    "text",
+    x = 45,
+    y = 1.5,
+    label = paste0("n = ", unique(mhsum$q11$total))
+  )
+
+mhplot$q11
+```
+
+## Combine Q10 & Q11
+
+```{r}
+# mhplot$q10_q11 <- wrap_plots(
+#   wrap_plots(
+#     plot_spacer(),
+#     mhplot$q10,
+#     plot_spacer(),
+#     ncol = 1,
+#     heights = c(1, 5, 1)
+#   ) +
+#     theme(plot.margin = unit(c(0, 1, 0, .5), "in")),
+#   mhplot$q11 +
+#     theme(plot.margin = unit(c(.5, .5, .5, 0), "in")),
+#   nrow = 1
+# ) +
+#   plot_layout(widths = c(1, 1))
+# 
+# mhplot$q10_q11
+```
+
+# Q12
+
+```{r}
+qtitle <- cb$prompts$prompt[cb$prompts$number == 12]
+qtitle
+```
+
+## Pie chart
+
+```{r}
+mhsum$q12 <- mhsurv |>
+  summarize_results(var = "q12") |>
+  mutate(label = paste0(setmeup::round_ties_away(pct, 0), "%"))
+```
+
+```{r}
+mhplot$q12 <- mhsum$q12 |>
+  mh_pie_chart(
+    var = pct,
+    label = label,
+    fill = q12,
+    fill_colors = kc_pal,
+    # title = qtitle,
+    caption = paste("n =", unique(mhsum$q12$total)),
+    annotation_color = "white"
+  ) +
+  theme(
+    plot.margin = margin(0, .5, 0, .5, "inches"),
+    plot.caption = element_text(vjust = 5)
+  )
+
+mhplot$q12
+```
+
+## Map
+
+```{r}
+kcmap <- sf_city_2024
+```
+
+```{r}
+d <- units::set_units(10, "mile")
+
+# Filter points by proximity to KC
+ccbhc_sites <- cbind(
+  ccbhc_sites,
+  close = st_is_within_distance(
+    ccbhc_sites,
+    kcmap,
+    dist = d,
+    sparse = FALSE
+  )
+)
+```
+
+```{r}
+ggplot(kcmap) +
+  geom_sf(linewidth = 1) +
+  geom_sf(
+    data = st_buffer(kcmap, dist = d),
+    color = "red",
+    fill = NA
+  ) +
+  geom_sf(
+    aes(color = close),
+    data = ccbhc_sites,
+    shape = 18,
+    size = 4
+  )
+```
+
+```{r}
+mhplot$ccbhc_map <- ggplot(kcmap) +
+  geom_sf(linewidth = 1) +
+  # geom_point(
+  #   data = mhsurv |> drop_na(q12),
+  #   aes(x = block_lon, y = block_lat, color = q12),
+  #   size = 1.5,
+  #   alpha = .6
+  # ) +
+  geom_sf(
+    aes(color = "CCBHC"),
+    data = ccbhc_sites[ccbhc_sites$city == "Kansas City", ],
+    shape = 18,
+    size = 4
+  ) +
+  scale_color_manual(values = "black") +
+  theme_void() +
+  theme(
+    # plot.title = ggtext::element_textbox_simple(),
+    # plot.title = ggplot2::element_text(hjust = .5),
+    # plot.title.position = "plot",
+    # plot.caption = element_text(hjust = .5),
+    # plot.caption.position = "plot",
+    legend.text = element_text(size = rel(1)),
+    legend.title = element_blank()
+  ) #+
+  # ggplot2::labs(caption = paste("n =", unique(mhsum$q12$total))) +
+  # ggtitle(label = qtitle)
+
+mhplot$ccbhc_map
+```
+
+```{r}
+mhplot$q12_map <- ggplot(kcmap) +
+  geom_sf(linewidth = 1) +
+  geom_point(
+    data = mhsurv |> drop_na(q12),
+    aes(x = block_lon, y = block_lat, color = q12),
+    size = 1.5,
+    alpha = .6
+  ) +
+  geom_sf(
+    aes(color = "CCBHC"),
+    data = ccbhc_sites[ccbhc_sites$city == "Kansas City", ],
+    shape = 18,
+    size = 4
+  ) +
+  scale_color_manual(values = c(kc_pal, "black")) +
+  theme_void() +
+  theme(
+    # plot.title = ggtext::element_textbox_simple(),
+    # plot.title = ggplot2::element_text(hjust = .5),
+    # plot.title.position = "plot",
+    # plot.caption = element_text(hjust = .5),
+    # plot.caption.position = "plot",
+    legend.text = element_text(size = rel(1)),
+    legend.title = element_blank()
+  ) #+
+  # ggplot2::labs(caption = paste("n =", unique(mhsum$q12$total))) +
+  # ggtitle(label = qtitle)
+
+mhplot$q12_map
+```
+
+## Combine pie & map
+
+```{r}
+# mhplot$q12_combined <- wrap_plots(
+#   mhplot$q12,
+#   mhplot$q12_map,
+#   nrow = 1,
+#   widths = c(1.2, 2)
+# ) +
+#   plot_annotation(
+#     # title = qtitle,
+#     caption = paste("n =", unique(mhsum$q12$total))
+#   ) &
+#   theme(
+#     # plot.title = ggtext::element_textbox_simple(),
+#     plot.caption = element_text(hjust = .5, size = rel(1))
+#   )
+# 
+# mhplot$q12_combined
+```
+
+# Save plots
+
+```{r}
+ggsave(
+  "../output/treatment-slides/q10.svg",
+  mhplot$q10, width = 5.5, height = 3.5, bg = "white"
+)
+ggsave(
+  "../output/treatment-slides/q11.svg",
+  mhplot$q11, width = 6, height = 5, bg = "white"
+)
+ggsave(
+  "../output/treatment-slides/q12.svg",
+  mhplot$q12, width = 5.5, height = 3.5, bg = "white"
+)
+ggsave(
+  "../output/treatment-slides/q12_map.svg",
+  mhplot$q12_map, width = 4, height = 5, bg = "white"
+)
+ggsave(
+  "../output/treatment-slides/ccbhc_map.svg",
+  mhplot$ccbhc_map, 
+  width = 4, height = 5, bg = "white"
+)
+```

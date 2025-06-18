@@ -1,0 +1,108 @@
+---
+title: "Basic plots"
+output:
+  html_notebook:
+    toc: false
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.width = 10,
+  fig.height = 9
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+library(patchwork)
+```
+
+```{r}
+source("fn.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+```
+
+```{r}
+pwplot <- function(df, var, title) {
+  fctr <- list(
+    All = NULL, Sex = "birth_sex", Age = "age",
+    "Race/\nethnicity" = "race_ethn_bwo",
+    "Hispanic\norigin" = "hispanic_origin",
+    "HOI region" = "hoi_region"
+  )
+
+  ls <- imap(fctr, \(f, i) {
+    df <- summarize_results(df, var = var, gp_fctr = f) |>
+      mutate(
+        label = paste0(round_ties_away(pct), "%"),
+        grouping_factor = i
+      )
+    if (i != "All") {
+      mh_barplot(df, pct, .data[[f]], label, .data[[var]]) +
+        scale_y_discrete(limits = rev(levels(df[[f]]))) +
+        xlab("%") + ylab(i) +
+        scale_fill_viridis_d(labels = function(x) str_wrap(x, width = 25))
+    } else {
+      mh_barplot(df, pct, grouping_factor, label, .data[[var]]) +
+        xlab("%") + ylab("") +
+        scale_fill_viridis_d(labels = function(x) str_wrap(x, width = 25))
+    }
+  })
+
+  hts <- unit(c(1, 2, 5, 3, 2, 3) * .3 + .2, rep("inches", 5))
+
+  wrap_plots(ls, ncol = 1, guides = "collect", axes = "collect_x") +
+    plot_layout(heights = hts) +
+    plot_annotation(
+      title = str_wrap(title, width = 80),
+      theme = theme(plot.title = element_text(
+        hjust = .5,
+        size = rel(1.2)
+      ))
+    )
+}
+```
+
+```{r}
+# Join prompts for multipart questions
+prompts <- cb$prompts
+
+n <- c(4, 11, 13, 14)
+
+for (i in 1:length(n)) {
+  p1 <- paste0("^", n[i], "$")
+  s1 <- prompts[grepl(p1, prompts$number), "prompt", drop = TRUE]
+  p2 <- paste0("^", n[i], "_")
+  s2 <- prompts[grepl(p2, prompts$number), "prompt", drop = TRUE]
+  prompts[grepl(p2, prompts$number), "prompt"] <- paste(s1, s2)
+}
+
+prompts$number <- paste0("q", prompts$number)
+```
+
+```{r}
+vars <- colnames(mhsurv)
+qvars <- vars[which(vars == "q4_1"):length(vars)]
+
+mhplots <- lapply(qvars, \(x) {
+  pwplot(mhsurv, x, prompts$prompt[prompts$number == x])
+})
+```
+
+## {.tabset}
+
+```{r results='asis', echo=FALSE}
+for (i in 1:length(mhplots)) {
+  q <- toupper(sub("_", "\\.", qvars[i]))
+  cat(paste0("### ", q, "\n\n"))
+  print(mhplots[[i]])
+  plot.new()
+  dev.off()
+}
+```
