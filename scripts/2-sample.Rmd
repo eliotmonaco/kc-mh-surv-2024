@@ -35,13 +35,6 @@ mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 ```
 
 ```{r}
-# 2023 5-year ACS population data for Kansas City
-kcpop <- list()
-kcpop$city <- acs5_city_2023
-kcpop$zcta <- acs5_zcta_2023
-```
-
-```{r}
 # HOI regions
 hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
 ```
@@ -67,16 +60,19 @@ Summarize the survey sample by sex.
 
 ```{r}
 df <- mhsurv |>
-  summarize_results(var = "birth_sex", na_rm = FALSE) |>
-  rename(pct_of_sample = pct)
+  summarize_results(var = "birth_sex", na_rm = FALSE)
 ```
 
 Pull the ACS population estimates by sex for Kansas City.
 
 ```{r}
-kcpop$sex <- kcpop$city |>
+kcpop <- list()
+
+kcpop$total <- acs5_city_2023$estimate[acs5_city_2023$variable == "B01001_001"]
+
+kcpop$sex <- acs5_city_2023 |>
   filter(variable %in% c("B01001_002", "B01001_026")) |>
-  mutate(kc_total = kcpop$city$estimate[kcpop$city$variable == "B01001_001"])
+  mutate(kc_total = kcpop$total)
 ```
 
 Find the percentage of each sex category in KC sampled.
@@ -92,8 +88,8 @@ df <- df |>
   ) |>
   select(-label) |>
   mutate(
-    pct_of_sex = pct(n, estimate, digits = 5),
-    citywide_pct = pct(estimate, kc_total, digits = 5),
+    label = paste0(round_ties_away(pct, 0), "%"),
+    pct_kc = pct(estimate, kc_total, digits = 5),
     d0 = as.numeric(birth_sex) - d,
     d1 = as.numeric(birth_sex) + d
   )
@@ -103,50 +99,36 @@ df
 
 ### Plot
 
-```{r}
-# n <- df$n[is.na(df$birth_sex)]
-# 
-# fig <- df |>
-#   drop_na(birth_sex) |>
-#   mutate(label = paste0(round_ties_away(pct_of_sample), "%")) |>
-#   ggplot(aes(x = "", y = pct_of_sample, label = label, fill = birth_sex)) |>
-#   mh_pie_chart(
-#     title = "Survey sample by sex",
-#     caption = paste0("n = ", unique(df$total) - n)
-#   )
-# 
-# fig
-```
-
-```{r fig.width=2.5}
-# fig <- df |>
-#   drop_na(birth_sex) |>
-#   mutate(label = paste0(round_ties_away(pct_of_sex, 2), "%")) |>
-#   ggplot(aes(x = birth_sex, y = pct_of_sex, label = label, fill = "#F04C43")) |>
-#   mh_barplot(
-#     title = "Sex categories in sample compared to Kansas City population",
-#     legend = FALSE
-#   ) +
-#   xlab("\nBirth sex") + ylab("%\n")
-# 
-# fig
-```
-
-Figure: Sex of survey respondents. N = 647.
+Figure: Sex of survey sample. N = 647.
 
 ```{r}
-fig <- df |>
+figs <- list()
+
+figs$sex1 <- df |>
   drop_na(birth_sex) |>
-  mutate(label = paste0(round_ties_away(pct_of_sample, 0), "%")) |>
-  ggplot(aes(x = pct_of_sample, y = birth_sex, label = label, fill = "#F04C43")) |>
-  mh_barplot(legend = FALSE) +
+  ggplot(aes(x = pct, y = birth_sex, label = label)) |>
+  mh_barplot(fill = "#F04C43", legend = FALSE) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("Birth sex\n")
 
-fig2 <- fig +
-  demo_segment()
+figs$sex1
+```
 
-fig
+```{r}
+figs$sex2 <- figs$sex1 +
+  kc_pop_segment(pct_kc, pct_kc, d0, d1)
+
+figs$sex2
+```
+
+```{r}
+figs$sex3 <- df |>
+  drop_na(birth_sex) |>
+  ggplot(aes(x = "", y = pct, label = label, fill = birth_sex)) |>
+  mh_pie_chart(fill_colors = c("#318CCC", "#F04C43")) +
+  theme(plot.margin = margin(-.25, -.2, -.25, -.45, "in"))
+
+figs$sex3
 ```
 
 ```{r}
@@ -163,8 +145,9 @@ figcap
 mhsamp$sex <- list(
   sum = df,
   n = n,
-  fig1 = fig,
-  fig2 = fig2,
+  fig1 = figs$sex1,
+  fig2 = figs$sex2,
+  fig3 = figs$sex3,
   cap = figcap
 )
 ```
@@ -177,19 +160,18 @@ Summarize the survey sample by age.
 
 ```{r}
 df <- mhsurv |>
-  summarize_results(var = "age1", na_rm = FALSE) |>
-  rename(pct_of_sample = pct)
+  summarize_results(var = "age1", na_rm = FALSE)
 ```
 
 Pull the ACS population estimates by age for Kansas City.
 
 ```{r}
-kcpop$age <- kcpop$city |>
+kcpop$age <- acs5_city_2023 |>
   filter(
     str_detect(label, paste0("(", paste(18:100, collapse = "|"), ").*years")),
     concept == "Sex by Age"
   ) |>
-  mutate(kc_total = kcpop$city$estimate[kcpop$city$variable == "B01001_001"])
+  mutate(kc_total = kcpop$total)
 ```
 
 Summarize ACS estimates by the same age categories in the survey sample.
@@ -204,14 +186,15 @@ kcpop$age <- kcpop$age |>
       str_remove("\\syears.*")
   )
 
-age_ranges <- list(18:34, 35:44, 45:54, 55:64, 65:74, 75:85)
+rng <- list(18:34, 35:44, 45:54, 55:64, 65:74, 75:85)
 
 kcpop$age <- data.frame(
   age = cb$age1$text,
-  estimate = unlist(lapply(age_ranges, \(x) {
-    sum(kcpop$age |>
+  estimate = unlist(lapply(rng, \(x) {
+    kcpop$age |>
       filter(str_detect(age_group, paste(x, collapse = "|"))) |>
-      pull(estimate))
+      pull(estimate) |>
+      sum()
   })),
   kc_total = unique(kcpop$age$kc_total)
 )
@@ -226,8 +209,7 @@ df <- df |>
     by = c("age1" = "age")
   ) |>
   mutate(
-    pct_of_age_gp = pct(n, estimate, digits = 5),
-    citywide_pct = pct(estimate, kc_total, digits = 5),
+    pct_kc = pct(estimate, kc_total, digits = 5),
     d0 = as.numeric(age1) - d,
     d1 = as.numeric(age1) + d
   )
@@ -237,52 +219,25 @@ df
 
 ### Plot
 
-```{r}
-# n <- df$n[is.na(df$age1)]
-# 
-# fig <- df |>
-#   drop_na(age1) |>
-#   mutate(label = paste0(round_ties_away(pct_of_sample), "%")) |>
-#   ggplot(aes(x = age1, y = pct_of_sample, label = label, fill = "#F04C43")) |>
-#   mh_barplot(
-#     title = "Survey sample by age",
-#     legend = FALSE,
-#     caption = paste0("n = ", unique(df$total) - n)
-#   ) +
-#   xlab("\nAge") + ylab("%\n")
-# 
-# fig
-```
+Figure: Age of survey sample. N = 609.
 
 ```{r}
-# fig <- df |>
-#   drop_na(age1) |>
-#   mutate(label = paste0(round_ties_away(pct_of_age_gp, 2), "%")) |>
-#   ggplot(aes(x = age1, y = pct_of_age_gp, label = label, fill = "#F04C43")) |>
-#   mh_barplot(
-#     title = "Age categories in sample compared to Kansas City population",
-#     legend = FALSE
-#   ) +
-#   xlab("\nAge") + ylab("%\n")
-# 
-# fig
-```
-
-Figure: Age of survey respondents. N = 609.
-
-```{r}
-fig <- df |>
+figs$age1 <- df |>
   drop_na(age1) |>
-  mutate(label = paste0(round_ties_away(pct_of_sample, 0), "%")) |>
-  ggplot(aes(x = pct_of_sample, y = age1, label = label, fill = "#F04C43")) |>
-  mh_barplot(legend = FALSE) +
+  mutate(label = paste0(round_ties_away(pct, 0), "%")) |>
+  ggplot(aes(x = pct, y = age1, label = label)) |>
+  mh_barplot(fill = "#F04C43", legend = FALSE) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("Age\n")
 
-fig2 <- fig +
-  demo_segment()
+figs$age1
+```
 
-fig
+```{r}
+figs$age2 <- figs$age1 +
+  kc_pop_segment(pct_kc, pct_kc, d0, d1)
+
+figs$age2
 ```
 
 ```{r}
@@ -299,13 +254,13 @@ figcap
 mhsamp$age <- list(
   sum = df,
   n = n,
-  fig1 = fig,
-  fig2 = fig2,
+  fig1 = figs$age1,
+  fig2 = figs$age2,
   cap = figcap
 )
 ```
 
-## Age/sex pyramid
+## Age structure
 
 ### Summarize
 
@@ -315,7 +270,7 @@ df <- mhsurv |>
   mutate(n = case_when(
     birth_sex == "Male" ~ -n,
     birth_sex == "Female" ~ n,
-    is.na(birth_sex) ~ NA
+    .default = NA
   ))
 
 df
@@ -323,29 +278,31 @@ df
 
 ### Plot
 
-Figure: Age and sex of survey respondents. N = 608.
+Figure: Age structure of survey sample. N = 608.
 
 ```{r fig.height=2.5, fig.width=6}
 # Create symmetrical x-axis
 n <- max(abs(df$n), na.rm = TRUE) + 5
 rng <- c(-n, n)
 
-fig <- df |>
+figs$pyr1 <- df |>
   mutate(label = abs(n)) |>
   drop_na(birth_sex, age1, n) |>
   ggplot(aes(x = n, y = age1, label = label, fill = birth_sex)) |>
   mh_barplot(legend_title = TRUE) +
   xlab("\nSample (n)") + ylab("Age\n") +
   scale_x_continuous(labels = abs, limits = rng) +
-  labs(fill = "Birth sex")
+  labs(fill = "Birth sex") +
+  theme(panel.grid.major.y = element_line(color = "grey92")) +
+  scale_fill_manual(values = c("#318CCC", "#F04C43"))
 
-fig
+figs$pyr1
 ```
 
 ```{r}
 n <- sum(abs(df$n[!is.na(df$age1)]), na.rm = TRUE)
 figcap <- paste0(
-  "Age and sex of survey sample.",
+  "Age structure of survey sample.",
   " N = ", n, "."
 )
 
@@ -356,7 +313,7 @@ figcap
 mhsamp$age_sex <- list(
   sum = df,
   n = n,
-  fig = fig,
+  fig = figs$pyr1,
   cap = figcap
 )
 ```
@@ -384,13 +341,13 @@ df <- df |>
   select(race_ethn = values) |>
   drop_na() |>
   count(race_ethn, .drop = FALSE) |>
-  mutate(pct_of_sample = pct(n, 648, digits = 5))
+  mutate(pct = pct(n, 648, digits = 5))
 ```
 
 ```{r}
 # Convert to factor sorted by size
 lvl <- df |>
-  arrange(pct_of_sample) |>
+  arrange(pct) |>
   pull(race_ethn)
 
 df <- df |>
@@ -406,20 +363,18 @@ mhsurv |>
 
 ### Plot
 
-Figure: Race/ethnicity of survey respondents. Multiple selections possible.
+Figure: Race/ethnicity of survey sample. Multiple selections possible.
 
 ```{r fig.height=3.5}
-fig <- df |>
-  mutate(label = paste0(round_ties_away(pct_of_sample, 1), "%")) |>
-  ggplot(aes(
-    x = pct_of_sample, y = race_ethn, label = label, fill = "#F04C43"
-  )) |>
-  mh_barplot(legend = FALSE) +
+figs$re1 <- df |>
+  mutate(label = paste0(round_ties_away(pct, 1), "%")) |>
+  ggplot(aes(x = pct, y = race_ethn, label = label)) |>
+  mh_barplot(fill = "#F04C43", legend = FALSE) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("Race/ethnicity\n") #+
 # scale_y_discrete(labels = scales::label_wrap(40))
 
-fig
+figs$re1
 ```
 
 ```{r}
@@ -436,7 +391,7 @@ figcap
 mhsamp$race_ethn_all <- list(
   sum = df,
   n = n,
-  fig = fig,
+  fig = figs$re1,
   cap = figcap
 )
 ```
@@ -449,14 +404,13 @@ Summarize the survey sample by collapsed race/ethnicity categories.
 
 ```{r}
 df <- mhsurv |>
-  summarize_results(var = "race_ethn_bwo", na_rm = FALSE) |>
-  rename(pct_of_sample = pct)
+  summarize_results(var = "race_ethn_bwo", na_rm = FALSE)
 ```
 
 ```{r}
 # Convert to factor sorted by size
 lvl <- df |>
-  arrange(pct_of_sample) |>
+  arrange(pct) |>
   pull(race_ethn_bwo)
 
 df <- df |>
@@ -466,9 +420,9 @@ df <- df |>
 Pull the ACS population estimates by race for Kansas City.
 
 ```{r}
-kcpop$race <- kcpop$city |>
+kcpop$race <- acs5_city_2023 |>
   filter(grepl("B01001[A-G]_001", variable)) |>
-  mutate(kc_total = kcpop$city$estimate[kcpop$city$variable == "B01001_001"])
+  mutate(kc_total = kcpop$total)
 ```
 
 Verify that the sum of estimates by race equals the total population estimate.
@@ -478,7 +432,7 @@ identical(
   kcpop$race |>
     pull(estimate) |>
     sum(),
-  kcpop$city |>
+  acs5_city_2023 |>
     filter(grepl("B01001_001", variable)) |>
     pull(estimate)
 )
@@ -494,7 +448,7 @@ kcpop$race_ethn <- data.frame(
     kcpop$race$estimate[grepl("White", kcpop$race$concept)],
     sum(kcpop$race$estimate[!grepl("Black|White", kcpop$race$concept)])
   ),
-  kc_total = unique(kcpop$race$kc_total)
+  kc_total = kcpop$total
 )
 ```
 
@@ -509,8 +463,8 @@ df <- df |>
   ) |>
   select(-race_ethn) |>
   mutate(
-    pct_of_race_ethn = pct(n, estimate, digits = 5),
-    citywide_pct = pct(estimate, kc_total, digits = 5),
+    label = paste0(round_ties_away(pct), "%"),
+    pct_kc = pct(estimate, kc_total, digits = 5),
     d0 = as.numeric(race_ethn_bwo) - d,
     d1 = as.numeric(race_ethn_bwo) + d
   )
@@ -520,35 +474,23 @@ df
 
 ### Plot
 
-Figure: Collapsed race/ethnicity of survey respondents. Respondents who chose "White" or "MENA" alone are grouped under "White", "Black" or "African" alone are grouped under "Black", and all others under "Other".
+Figure: Collapsed race/ethnicity of survey sample. Respondents who chose "White" or "MENA" alone are grouped under "White", "Black" or "African" alone are grouped under "Black", and all others under "Other".
 
 ```{r}
-fig <- df |>
-  mutate(label = paste0(round_ties_away(pct_of_sample), "%")) |>
-  ggplot(aes(
-    x = pct_of_sample, y = race_ethn_bwo, label = label, fill = "#F04C43"
-  )) |>
-  mh_barplot(legend = FALSE) +
+figs$rec1 <- df |>
+  ggplot(aes(x = pct, y = race_ethn_bwo, label = label)) |>
+  mh_barplot(fill = "#F04C43", legend = FALSE) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("Race/ethnicity\n")
 
-fig2 <- fig +
-  demo_segment()
-
-fig
+figs$rec1
 ```
 
 ```{r}
-# fig <- df |>
-#   mutate(label = paste0(round_ties_away(pct_of_race_ethn, 2), "%")) |>
-#   ggplot(aes(x = race_ethn_bwo, y = pct_of_race_ethn, label = label, fill = "#F04C43")) |>
-#   mh_barplot(
-#     title = "Age categories in sample compared to Kansas City population",
-#     legend = FALSE
-#   ) +
-#   xlab("\nRace/ethnicity (collapsed)") + ylab("%\n")
-# 
-# fig
+figs$rec2 <- figs$rec1 +
+  kc_pop_segment(pct_kc, pct_kc, d0, d1)
+
+figs$rec2
 ```
 
 ```{r}
@@ -565,8 +507,8 @@ figcap
 mhsamp$race_ethn_bwo <- list(
   sum = df,
   n = n,
-  fig1 = fig,
-  fig2 = fig2,
+  fig1 = figs$rec1,
+  fig2 = figs$rec2,
   cap = figcap
 )
 ```
@@ -579,16 +521,15 @@ Summarize the survey sample by Hispanic origin.
 
 ```{r}
 df <- mhsurv |>
-  summarize_results(var = "hispanic_origin", na_rm = FALSE) |>
-  rename(pct_of_sample = pct)
+  summarize_results(var = "hispanic_origin", na_rm = FALSE)
 ```
 
 Pull the ACS population estimates by Hispanic origin for Kansas City.
 
 ```{r}
-kcpop$hispanic <- kcpop$city |>
+kcpop$hispanic <- acs5_city_2023 |>
   filter(grepl("B01001I?_001", variable)) |>
-  mutate(kc_total = kcpop$city$estimate[kcpop$city$variable == "B01001_001"])
+  mutate(kc_total = kcpop$total)
 ```
 
 Summarize the ACS population estimates by Hispanic origin.
@@ -601,7 +542,7 @@ kcpop$hispanic <- data.frame(
     kcpop$hispanic$estimate[kcpop$hispanic$variable == "B01001_001"] -
       kcpop$hispanic$estimate[kcpop$hispanic$variable == "B01001I_001"]
   ),
-  kc_total = unique(kcpop$hispanic$kc_total)
+  kc_total = kcpop$total
 )
 ```
 
@@ -616,8 +557,8 @@ df <- df |>
   ) |>
   select(-hispanic_origin_acs) |>
   mutate(
-    pct_of_hispanic = pct(n, estimate, digits = 3),
-    citywide_pct = pct(estimate, kc_total, digits = 5),
+    label = paste0(round_ties_away(pct), "%"),
+    pct_kc = pct(estimate, kc_total, digits = 5),
     d0 = as.numeric(hispanic_origin) - d,
     d1 = as.numeric(hispanic_origin) + d
   )
@@ -627,35 +568,23 @@ df
 
 ### Plot
 
-Figure: Hispanic origin of survey respondents.
+Figure: Hispanic origin of survey sample.
 
 ```{r}
-fig <- df |>
-  mutate(label = paste0(round_ties_away(pct_of_sample), "%")) |>
-  ggplot(aes(
-    x = pct_of_sample, y = hispanic_origin, label = label, fill = "#F04C43"
-  )) |>
-  mh_barplot(legend = FALSE) +
+figs$hisp1 <- df |>
+  ggplot(aes(x = pct, y = hispanic_origin, label = label)) |>
+  mh_barplot(fill = "#F04C43", legend = FALSE) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("Hispanic origin\n")
 
-fig2 <- fig +
-  demo_segment()
-
-fig
+figs$hisp1
 ```
 
 ```{r}
-# fig <- df |>
-#   mutate(label = paste0(round_ties_away(pct_of_hispanic, 2), "%")) |>
-#   ggplot(aes(x = pct_of_hispanic, y = hispanic_origin, label = label, fill = "#F04C43")) |>
-#   mh_barplot(
-#     title = "Hispanic origin categories in sample compared to Kansas City population",
-#     legend = FALSE
-#   ) +
-#   xlab("\nHispanic origin") + ylab("%\n")
-# 
-# fig
+figs$hisp2 <- figs$hisp1 +
+  kc_pop_segment(pct_kc, pct_kc, d0, d1)
+
+figs$hisp2
 ```
 
 ```{r}
@@ -676,8 +605,8 @@ figcap
 mhsamp$hispanic_origin <- list(
   sum = df,
   n = n,
-  fig1 = fig,
-  fig2 = fig2,
+  fig1 = figs$hisp1,
+  fig2 = figs$hisp2,
   cap = figcap
 )
 ```
@@ -693,7 +622,7 @@ mhsurv |>
 
 Map HOI regions and deidentified respondent residence locations.
 
-```{r fig.width=8, fig.height=8}
+```{r fig.width=4, fig.height=6}
 ggplot() +
   geom_sf(
     data = sf_city_2023,
@@ -726,7 +655,7 @@ df <- mhsurv |>
   mutate(zip = factor(zip, levels = sort(as.numeric(sf_zcta_2024$GEOID20)))) |>
   count(zip, .drop = FALSE) |>
   left_join(
-    kcpop$zcta |>
+    acs5_zcta_2023 |>
       filter(variable == "B01001_001") |>
       select(GEOID, estimate),
     by = c("zip" = "GEOID"),
@@ -741,24 +670,26 @@ df
 ### Plot
 
 ```{r fig.width=5, fig.height=14}
-fig <- df |>
+figs$zcta <- df |>
   mutate(label = paste0(round_ties_away(pct_of_zcta, 2), "%")) |>
-  ggplot(aes(x = pct_of_zcta, y = zip, label = label, fill = "#F04C43")) |>
+  ggplot(aes(x = pct_of_zcta, y = zip, label = label)) |>
   mh_barplot(
+    fill = "#F04C43",
     title = "ZCTAs in sample compared to Kansas City population",
     legend = FALSE
   ) +
   scale_x_continuous(expand = c(0, NA)) +
   xlab("\nSample (%)") + ylab("ZCTA\n")
 
-fig
+figs$zcta
 ```
 
 ### Choropleth map
 
 ```{r}
-kczcta <- st_transform(sf_zcta_2023, 4326)
-kcpop <- acs5_zcta_2023 |>
+geo_zcta <- st_transform(sf_zcta_2023, 4326)
+
+kcpop$zcta <- acs5_zcta_2023 |>
   filter(grepl("^B01003", variable))
 ```
 
@@ -770,7 +701,7 @@ pts <- mhsurv |>
     crs = 4326
   ) |>
   st_join(
-    kczcta[, c("GEOID20", "geometry")],
+    geo_zcta[, c("GEOID20", "geometry")],
     join = st_within
   ) |>
   count(GEOID20, .drop = FALSE) |>
@@ -778,27 +709,27 @@ pts <- mhsurv |>
 ```
 
 ```{r}
-kczcta <- kczcta |>
+geo_zcta <- geo_zcta |>
   left_join(
     pts[, c("GEOID20", "n")],
     by = "GEOID20"
   ) |>
   left_join(
-    kcpop[, c("GEOID", "estimate")],
+    kcpop$zcta[, c("GEOID", "estimate")],
     by = c("GEOID20" = "GEOID")
   ) |>
   rename(n_sampled = n)
 ```
 
 ```{r}
-kczcta <- kczcta |>
+geo_zcta <- geo_zcta |>
   mutate(kcpop = kc_area_pct / 100 * estimate) |>
   mutate(pct_sampled = setmeup::pct(n_sampled, kcpop, 8)) |>
   mutate(n_sampled_per_1k = n_sampled * 1000 / kcpop)
 ```
 
-```{r fig.width=8, fig.height=8}
-ggplot(kczcta) +
+```{r fig.width=5, fig.height=6}
+figs$geo_zcta <- ggplot(geo_zcta) +
   geom_sf(
     aes(fill = n_sampled_per_1k)
   ) +
@@ -807,15 +738,17 @@ ggplot(kczcta) +
     breaks = c(0, 2, 4, 6, 8),
     name = "Number sampled per\n1,000 residents"
   )
+
+figs$geo_zcta
 ```
 
-## Map of respondents
+## Map of sample
 
-Map of respondents with OSM base layer and city boundary.
+Map of survey sample with OSM base layer and city boundary.
 
 ```{r}
-kcmap <- st_transform(sf_city_2024,  crs = st_crs(3857))
-ext <- st_bbox(kcmap)
+geo_kc <- st_transform(sf_city_2024,  crs = st_crs(3857))
+ext <- st_bbox(geo_kc)
 exp <- 5000
 ext[1] <- ext[1] - exp
 ext[2] <- ext[2] - exp
@@ -832,8 +765,8 @@ pts <- st_transform(
 )
 ```
 
-```{r fig.width=8, fig.height=8}
-fig <- ggplot(data = kcmap) +
+```{r fig.width=4, fig.height=6}
+figs$map_sample <- ggplot(data = geo_kc) +
   basemaps::basemap_gglayer(
     ext = ext,
     map_service = "osm",
@@ -842,7 +775,7 @@ fig <- ggplot(data = kcmap) +
     verbose = FALSE
   ) +
   geom_sf(
-    data = kcmap,
+    data = geo_kc,
     color = NA,
     fill = "navy",
     alpha = .2
@@ -860,12 +793,12 @@ fig <- ggplot(data = kcmap) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_void()
 
-fig
+figs$map_sample
 ```
 
 ```{r}
 mhsamp$sample_map <- list(
-  fig = fig,
+  fig = figs$map_sample,
   cap = "Map of survey sample. Locations are approximate. N = 648."
 )
 ```

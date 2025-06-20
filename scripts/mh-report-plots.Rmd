@@ -5,7 +5,7 @@ output: html_notebook
 
 # Purpose
 
-Basic plots for each survey question.
+Plots for the Mental Health Survey report.
 
 # Set up environment and import data
 
@@ -115,8 +115,8 @@ plots <- lapply(names(mhsum), \(x) {
   } else if (plot == "bar2") {
     fig <- mhsum[[x]] |>
       mutate(label = paste0(round_ties_away(pct), "%")) |>
-      ggplot(aes(x = pct, y = prompt, label = label, fill = "#F04C43")) |>
-      mh_barplot(legend = FALSE) +
+      ggplot(aes(x = pct, y = prompt, label = label)) |>
+      mh_barplot(fill = "#F04C43", legend = FALSE) +
       scale_x_continuous(expand = c(0, NA)) +
       xlab("\nSample (%)") + ylab("Reason\n") +
       scale_y_discrete(labels = scales::label_wrap(32))
@@ -261,49 +261,3 @@ Save PNGs.
 #   plots_pie$q12, width = 6.5, height = 2, bg = "white"
 # )
 ```
-
-<!-- Save SVGs. -->
-
-<!-- ```{r include=FALSE} -->
-<!-- # Q4 subquestions -->
-<!-- lapply(names(plots_bar[grepl("^q4_", names(plots_bar))]), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, ".svg") -->
-<!--   ggsave(nm, plots_bar[[x]], width = 6.5, height = 3, bg = "white") -->
-<!-- }) -->
-
-<!-- # Q14-15 -->
-<!-- lapply(names(plots_bar[grepl("^q14|^q15", names(plots_bar))]), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, ".svg") -->
-<!--   ggsave(nm, plots_bar[[x]], width = 4.5, height = 2, bg = "white") -->
-<!-- }) -->
-
-<!-- # All other bar plots -->
-<!-- lapply(names(plots_bar[!grepl("^q4_|^q14|^q15", names(plots_bar))]), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, ".svg") -->
-<!--   ggsave(nm, plots_bar[[x]], width = 6.5, height = 3, bg = "white") -->
-<!-- }) -->
-
-<!-- # All pie charts -->
-<!-- lapply(names(plots_pie), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, ".svg") -->
-<!--   ggsave(nm, plots_pie[[x]], width = 6.5, height = 3, bg = "white") -->
-<!-- }) -->
-
-<!-- # Q15 age differences -->
-<!-- lapply(names(plots_age[grepl("^q15", names(plots_age))]), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, "-age.svg") -->
-<!--   ggsave(nm, plots_age[[x]], width = 4.5*1.5, height = 2*1.5, bg = "white") -->
-<!-- }) -->
-
-<!-- # Q13 & Q16 age differences -->
-<!-- lapply(names(plots_age[!grepl("^q15", names(plots_age))]), \(x) { -->
-<!--   nm <- paste0("mh-report/plot-", x, "-age.svg") -->
-<!--   ggsave(nm, plots_age[[x]], width = 6.5, height = 3, bg = "white") -->
-<!-- }) -->
-
-<!-- # Q11 -->
-<!-- ggsave( -->
-<!--   "mh-report/plot-q11.svg", -->
-<!--   plot_q11, width = 7, height = 5, bg = "white" -->
-<!-- ) -->
-<!-- ``` -->

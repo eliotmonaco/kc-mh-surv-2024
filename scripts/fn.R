@@ -142,7 +142,6 @@ mh_pie_chart <- function(
       size = text_scaling_annotation * .2,
       size.unit = "in"
     ) +
-    # ggplot2::scale_color_manual(labels = waiver(), values = lc) +
     ggplot2::scale_fill_manual(values = fill_colors) +
     ggplot2::theme_void() +
     ggplot2::theme(
@@ -185,7 +184,8 @@ mh_barplot <- function(
     annotation_color = NULL,
     text_scaling_axes = 1.2,
     text_scaling_legend = 1,
-    text_scaling_caption = 1) {
+    text_scaling_caption = 1,
+    ...) {
   bar_position <- match.arg(bar_position)
 
   label_position <- match.arg(label_position)
@@ -193,9 +193,9 @@ mh_barplot <- function(
   plot <- plot +
     ggplot2::geom_bar(
       position = bar_position,
-      stat = "identity"
+      stat = "identity",
+      ...
     ) +
-    # ggplot2::theme_minimal() +
     ggplot2::theme_classic() +
     ggplot2::theme(
       panel.background = ggplot2::element_rect(fill = NA, color = NA),
@@ -261,15 +261,16 @@ mh_barplot <- function(
   plot
 }
 
-demo_segment <- function() {
+kc_pop_segment <- function(x0, x1, y0, y1) {
   ggplot2::geom_segment(
     aes(
-      x = citywide_pct,
-      xend = citywide_pct,
-      y = d0,
-      yend = d1
+      x = {{ x0 }},
+      xend = {{ x1 }},
+      y = {{ y0 }},
+      yend = {{ y1 }}
     ),
-    alpha = .4,
+    color = "black",
+    alpha = .5,
     linewidth = 1
   )
 }
