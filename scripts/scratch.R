@@ -91,6 +91,46 @@ names(mhsum) <- qvars
 
 
 
+# test plots for color blindness-accessibility
+
+library(colorblindr)
+
+figs <- readRDS("data/2-final/figures_ungrouped.rds")
+
+cvd_grid(figs$q17_bin$plot)
+
+
+
+
+
+
+# John's cool function:
+
+#Function to Transform the word doc into a markdown
+ELC_word <- function(file){
+  system2("pandoc",
+          args = c("-s",
+                   file,
+                   "-t", "markdown",
+                   "-o", "/tmp/doc.md"),
+          stdout = TRUE, stderr = TRUE)
+
+  #Define the path of the temporary location of the markdown
+  md_path   <- "/tmp/doc.md"
+
+  #Read in the Markdown
+  md_lines  <- readLines(md_path)
+
+  return(md_lines)
+}
+
+
+
+
+
+
+
+acs5_2024 <- get_kc_pop("acs1", "place", 2024)
 
 
 

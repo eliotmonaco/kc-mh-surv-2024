@@ -1,0 +1,122 @@
+---
+title: "MH survey results grouped by post-COVID-19 mental health status"
+output:
+  html_notebook:
+    css: "style.css"
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  dev = "svg"
+)
+
+knitr::opts_knit$set(
+  progress = FALSE,
+  verbose = FALSE
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+library(patchwork)
+```
+
+```{r}
+source("fn.R")
+source("fn2.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+```
+
+```{r}
+# Create `postcov` grouping variables
+mhsurv <- mhsurv |>
+  mutate(
+    postcov2 = if_else(
+      q8a %in% c("Better", "About the same"),
+      "No worse",
+      q8a
+    ),
+    postcov3 = q8a,
+    postcov5 = q8,
+    .after = id
+  ) |>
+  mutate(postcov2 = factor(postcov2, levels = c("No worse", "Worse")))
+```
+
+```{r}
+# Remove un-binned numeric variables
+mhsurv <- mhsurv |>
+  select(!matches("^q(8|11)|_num$|_fac$|hrs_in_bed|min_to_sleep"))
+```
+
+```{r}
+# Tables of `postcov` values
+vars <- colnames(mhsurv)[grepl("postcov", colnames(mhsurv))]
+
+tbl <- list()
+
+for (i in 1:length(vars)) {
+  x <- vars[i]
+  tbl[[x]] <- mhsurv |>
+    count(.data[[x]]) |>
+    mutate(pct = pct(n, nrow(mhsurv), 0)) |>
+    rename("Post-COVID-19 mental health status" = {{ x }})
+  print(tbl[[x]])
+}
+```
+
+```{r}
+vars <- colnames(mhsurv)[grepl("postcov", colnames(mhsurv))]
+
+mhsmry <- lapply(vars, summarize_dataset)
+```
+
+```{r}
+mhfigs <- lapply(mhsmry, \(x) {
+  imap(x, \(df, i) {
+    var <- colnames(df)[grepl("postcov", colnames(df))]
+    df |>
+      rename(postcov = {{ var }}) |>
+      plot_grouped_data(i, "postcov", n_repel = 4, dir = "h", text_size = 16)
+  })
+})
+```
+
+```{r}
+# Join plots for each question
+pw <- pmap(mhfigs, \(x, y, z) {
+  pw <- wrap_plots(
+    x$plot, y$plot, z$plot,
+    ncol = 1, heights = c(2, 3, 5),
+    guides = "collect", axes = "collect"
+  )
+  list(pw = pw, cap = x$cap)
+})
+```
+
+```{r results='asis'}
+for (i in 1:length(pw)) {
+  q <- gsub("_", "-", names(pw)[i])
+  nm <- paste0("fig-pc-", q)
+  h = 8; w = 10; cap_size = 15; cap_width = 110
+  
+  chunk = sprintf(
+    "```{r %s, fig.height=8, fig.width=10}
+    print(
+      pw[[i]]$pw |>
+        add_caption(pw[[i]]$cap, size = 15, width = 110)
+    )
+    ```",
+    nm
+  )
+  
+  print_md_text(paste("##", toupper(q)))
+  print_md_chunk(chunk)
+}
+```

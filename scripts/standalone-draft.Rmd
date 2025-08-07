@@ -1,0 +1,195 @@
+---
+title: "MH standalone report draft"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  dev = "svg"
+)
+
+knitr::opts_knit$set(
+  progress = FALSE,
+  verbose = FALSE
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+```
+
+```{r}
+source("fn.R")
+source("fn3.R")
+source("fn4.R")
+```
+
+```{r}
+files <- c(
+  "figures_sample.rds",
+  "figures_ungrouped.rds",
+  "figures_grouped_by_age.rds"
+)
+files <- paste0("../data/2-final/", files)
+```
+
+```{r}
+fig <- lapply(files, readRDS)
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+ccbhc_map <- readRDS("../data/2-final/ccbhc_map.rds")
+```
+
+```{r}
+md <- doc_to_md(
+  file1 = "../data/1-source/report-text.docx",
+  file2 = "../data/1-source/report-text.md"
+)
+```
+
+```{r}
+# Rename and sort figures
+names(fig[[3]]) <- paste0(names(fig[[3]]), "_age")
+
+fig <- unlist(fig, recursive = FALSE)
+
+order <- c(
+  "sample_map",
+  "birth_sex", "age", "age_str", "race_ethnicity", "hispanic_origin",
+  "q4_1", "q4_2", "q4_3", "q4_4", "q5", "q6", "q7", "q8a",
+  "q9", "q10", "q11", "q12",
+  "si_bin", "si_bin_age", "sm_add_bin", "sm_use_fac", "sm_use_bin_age",
+  "hse", "hse_age", "hrs_slept_fac", "min_to_sleep_bin"
+)
+
+fig <- fig[order]
+```
+
+```{r}
+# Figure dimensions (width, height)
+dims <- list(
+  map1 = c(5, 7),
+  hbar2 = "c(4, 3)",
+  bar3 = "c(5, 4.5)",
+  bar4 = "c(5.5, 4.5)",
+  bar5 = "c(6, 4.5)",
+  barwide = "c(8, 4.5)",
+  sbar5 = "c(7, 4.5)",
+  pie = "c(6, 4)",
+  age = "c(4, 4.5)",
+  age_str = "c(6, 5)",
+  re = "c(5, 5)",
+  q11 = "c(7, 7)"
+)
+```
+
+# Introduction
+
+```{r results='asis'}
+print_from_md_file(md, "intro", 3)
+print_from_md_file(md, "purpose", 1)
+print_from_md_file(md, "method", 1)
+```
+
+```{r fig.dim=dims$map1}
+fig$sample_map$plot
+```
+
+`r fig$sample_map$cap`
+
+# Survey sample
+
+```{r results='asis'}
+x <- cb$viz$var[cb$viz$group == "gpfctr"]
+x <- names(fig)[names(fig) %in% x]
+f <- fig[x]
+
+for (i in 1:length(x)) {
+  q <- names(f)[i]
+  nm <- paste0("fig-std-", gsub("_", "-", q))
+  title <- cb$viz$title[cb$viz$var == q]
+  d <- dims[[cb$viz$dims[cb$viz$var == q]]]
+
+  chunk <- sprintf(
+    "```{r %s, fig.dim=%s}
+    print(
+      f[[q]]$plot |>
+        add_caption(f[[q]]$cap)
+    )
+    ```",
+    nm, d
+  )
+
+  print_md_text(paste("###", title))
+  print_md_chunk(chunk)
+}
+```
+
+# Survey results
+
+```{r results='asis'}
+print_from_md_file(md, "exec", 1)
+```
+
+## Personal mental health
+
+```{r results='asis'}
+print_from_md_file(md, "personal mental health", 3)
+```
+
+```{r results='asis'}
+print_questions_to_report("gen")
+```
+
+## Mental health treatment
+
+```{r results='asis'}
+print_from_md_file(md, "treatment", 3)
+```
+
+```{r results='asis'}
+print_questions_to_report("tr")
+```
+
+```{r results='asis'}
+print_from_md_file(md, "clinics", 1)
+```
+
+```{r fig.dim=dims$map1}
+ccbhc_map$plot
+```
+
+`r ccbhc_map$cap`
+
+## Social isolation
+
+```{r results='asis'}
+print_from_md_file(md, "social isolation", 3)
+```
+
+```{r results='asis'}
+print_questions_to_report("si")
+```
+
+## Social media use
+
+```{r results='asis'}
+print_from_md_file(md, "social media", 3)
+```
+
+```{r results='asis'}
+print_questions_to_report("sm")
+```
+
+## Sleep quality
+
+```{r results='asis'}
+print_from_md_file(md, "sleep quality", 3)
+```
+
+```{r results='asis'}
+print_questions_to_report("slp")
+```
+

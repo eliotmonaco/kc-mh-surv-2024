@@ -1,0 +1,85 @@
+---
+title: "Analysis of results grouped by post-COVID-19 mental health status"
+output:
+  html_notebook:
+    css: "style.css"
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  dev = "svg"
+)
+
+knitr::opts_knit$set(
+  progress = FALSE,
+  verbose = FALSE
+)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(patchwork)
+```
+
+```{r}
+source("fn.R")
+source("fn2.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+```
+
+```{r}
+# Create `postcov` grouping variable
+mhsurv <- mhsurv |>
+  mutate(
+    postcov2 = if_else(
+      q8a %in% c("Better", "About the same"),
+      "No worse",
+      q8a
+    ),
+    postcov3 = q8a,
+    postcov5 = q8,
+    .after = id
+  ) |>
+  mutate(postcov2 = factor(postcov2, levels = c("No worse", "Worse")))
+```
+
+```{r}
+vars <- cb$viz$var[which(cb$viz$data %in% c("factor", "numeric"))]
+vars <- vars[!grepl("^q8|^q11_|bin$", vars)] # remove 8, 11, & binned numeric Qs
+
+# vars <- vars[1:2]
+
+results <- lapply(vars, \(x) {
+  postcov_tests(mhsurv, x)
+})
+
+names(results) <- vars
+```
+
+```{r results='asis'}
+for (i in 1:length(results)) {
+  q <- gsub("_", "-", names(results)[i])
+  nm <- paste0("fig-pc-an-", q)
+  cap <- cb$viz$caption2[which(cb$viz$var == names(results)[i])]
+
+  chunk <- sprintf(
+    "```{r %s, fig.height=8, fig.width=11}
+    print(results[[i]]$lev_test)
+    print(results[[i]]$t_test)
+    print(results[[i]]$cor_test$result)
+    print(results[[i]]$cor_test$warnings)
+    suppressMessages(print(results[[i]]$plot))
+    ```",
+    nm
+  )
+
+  print_md_text(paste("##", toupper(q)))
+  print_md_text(paste("###", cap))
+  print_md_chunk(chunk)
+}
+```

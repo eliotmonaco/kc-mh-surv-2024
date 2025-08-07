@@ -1,0 +1,79 @@
+---
+title: "Plot selected questions grouped by age"
+output: html_notebook
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+```
+
+```{r}
+source("fn.R")
+source("fn2.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+```
+
+```{r}
+vars <- c("si_bin", "sm_use_bin", "hse")
+
+mhsmry <- lapply(vars, \(x) {
+  summarize_results(mhsurv, var = x, gp_fctr = "age2")
+})
+
+names(mhsmry) <- vars
+```
+
+```{r}
+mhfigs <- imap(mhsmry, \(df, x) {
+  n <- ifelse(x == "hse", 0, 5)
+
+  ls <- df |>
+    rename(age = age2) |>
+    plot_grouped_data(x, "age", n_repel = n, dir = "v")
+
+  if (x == "hse") {
+    ls$plot <- ls$plot +
+      coord_cartesian(ylim = c(90, 100)) +
+      scale_y_continuous(
+        expand = c(0, NA),
+        breaks = c(90, 95, 100)
+      ) +
+      geom_text(
+        aes(label = ifelse(
+          df$hse == "No difficulty",
+          paste0(round_ties_away(df$pct), "%"),
+          NA
+        )),
+        position = position_nudge(y = -((df$pct - 90) / 2)),
+        color = "white",
+        fontface = "bold"
+      )
+    
+    ls$cap <- paste0(ls$cap, " Note the truncated y-axis scale.")
+  }
+
+  ls
+})
+
+names(mhfigs) <- vars
+```
+
+```{r}
+for (i in 1:length(mhfigs)) {
+  print(
+    mhfigs[[i]]$plot |>
+      add_caption(mhfigs[[i]]$cap, size = 11)
+  )
+}
+```
+
+# Save/export
+
+```{r}
+saveRDS(mhfigs, "../data/2-final/figures_grouped_by_age.rds")
+```

@@ -16,6 +16,11 @@ library(tidyverse)
 ```
 
 ```{r}
+dir.create("figs")
+```
+
+```{r}
+# Load data
 samp <- readRDS("../../data/2-final/sample_data_&_plots.rds")
 mh <- readRDS("../../data/2-final/mh_report_data_&_plots.rds")
 ```
@@ -30,27 +35,27 @@ mhcaps <- mh$caps |>
 ```{r}
 # Sample plots
 ggsave(
-  "plot-sex.png", samp$sex$fig2,
+  "figs/sex.png", samp$sex$fig2,
   width = 3.75, height = 2.5
 )
 ggsave(
-  "plot-age.png", samp$age$fig2,
+  "figs/age.png", samp$age$fig2,
   width = 3.75, height = 2.5
 )
 ggsave(
-  "plot-pyramid.png", samp$age_sex$fig,
+  "figs/pyramid.png", samp$age_sex$fig,
   width = 7, height = 2.5
 )
 ggsave(
-  "plot-race-ethn-all.png", samp$race_ethn_all$fig,
+  "figs/race-ethn-all.png", samp$race_ethn_all$fig,
   width = 6.5, height = 2.5
 )
 ggsave(
-  "plot-race-ethn-bwo.png", samp$race_ethn_bwo$fig2,
+  "figs/race-ethn-bwo.png", samp$race_ethn_bwo$fig2,
   width = 6.5, height = 2.5
 )
 ggsave(
-  "plot-hispanic.png", samp$hispanic_origin$fig2,
+  "figs/hispanic.png", samp$hispanic_origin$fig2,
   width = 6.5, height = 2.5
 )
 ggsave(
@@ -63,7 +68,7 @@ ggsave(
 # Q4 subquestions
 q <- paste0("q4_", 1:4)
 lapply(q, \(x) {
-  nm <- paste0("plot-", sub("_", "-", x), ".png")
+  nm <- paste0("figs/", sub("_", "-", x), ".png")
   fig <- mh$figs[[x]]
   ggsave(nm, fig, width = 6.5, height = 2.5)
 })
@@ -76,125 +81,124 @@ lapply(q, \(x) {
 ```
 
 ```{=typst}
-= Introduction
-
-#v(.5in)
-
-#show heading: set align(left)
-
-#grid(
-  columns: (2fr, 3fr),
-  column-gutter: .25in,
-  rectgrey(height: 7.75in)[
-    == Purpose
-    The intended purpose of the Mental Health Survey is to gain a better understanding of Kansas City residents’ perception of their own mental health and behaviors. The results of this survey will be used for data driven decision making for program design and to identify interventions needed to support the Mental Health Initiatives. The survey supports Public Health Key Concept #1 in the KC Spirit Playbook which includes improving the mental health of Kansas City residents.
-
-    == Methodology
-    The Mental Health Survey was designed by the Office of Population Health Science and conducted by ETC Institute. The survey was mailed out in Quarter 3 of 2024 to 4,000 households with a response rate just over 16%. Recipients of the survey were selected on age, gender, race, and geographic location based off the demographic breakdown for Kansas City according to data collected in the 2020 Census. Surveys were made available in and Spanish with additional languages being available via phone. Survey results were scored and summarized by the Office of Population Health upon receipt of raw data.
-  ],
-  figure(
-    image("sample-map.png", height: 7.35in),
-    caption: [`r samp$sample_map$cap`]
+#page[
+  = Introduction
+  
+  #v(.5in)
+  
+  #show heading: set align(left)
+  
+  #grid(
+    columns: (2fr, 3fr),
+    column-gutter: .25in,
+    rectgrey(height: 7.75in)[
+      == Purpose
+      The intended purpose of the Mental Health Survey is to gain a better understanding of Kansas City residents’ perception of their own mental health and behaviors. The results of this survey will be used for data driven decision making for program design and to identify interventions needed to support the Mental Health Initiatives. The survey supports Public Health Key Concept #1 in the KC Spirit Playbook which includes improving the mental health of Kansas City residents.
+      
+      == Methodology
+      The Mental Health Survey was designed by the Office of Population Health Science and conducted by ETC Institute. The survey was mailed out in Quarter 3 of 2024 to 4,000 households with a response rate just over 16%. Recipients of the survey were selected on age, gender, race, and geographic location based off the demographic breakdown for Kansas City according to data collected in the 2020 Census. Surveys were made available in and Spanish with additional languages being available via phone. Survey results were scored and summarized by the Office of Population Health upon receipt of raw data.
+    ],
+    figure(
+      image("sample-map.png", height: 7.35in),
+      caption: [`r samp$sample_map$cap`]
+    )
   )
-)
-
-#pagebreak()
+]
 ```
 
 ```{=typst}
 #show heading: set align(center)
 
-= Survey Sample Demographics
-== Age and Sex
-
-#v(.5in)
-
-#grid(
-  columns: 2,
-  rows: 3,
-  column-gutter: .5in,
-  row-gutter: .5in,
-  grid.cell(
-    colspan: 2,
-    rectwhite[
-      The plots in this section show the demographic profile of the survey sample in comparison to the overall Kansas City population. The survey was completed by 648 residents. The survey sample closely reflects the city's population by sex, race, and Hispanic origin. The age of the sample skews older than the city's population, which may be the result of older citizens being more willing to respond to surveys (or something).
-
-      Dark vertical lines on some bars indicate the estimated citywide percentage of the population category sampled. Citywide population estimates were taken from the 2023 5-Year American Community Survey conducted by the US Census Bureau.
-    ]
-  ),
-  figure(
-    image("plot-sex.png"),
-    caption: [`r samp$sex$cap`]
-  ),
-  figure(
-    image("plot-age.png"),
-    caption: [`r samp$age$cap`]
-  ),
-  grid.cell(
-    colspan: 2,
-    rectgrey[
-      #figure(
-        image("plot-pyramid.png"),
-        caption: [`r samp$age_sex$cap`]
-      )
-    ]
+#page[
+  = Survey Sample Demographics
+  == Age and Sex
+  
+  #v(.5in)
+  
+  #grid(
+    columns: 2, rows: 3,
+    column-gutter: .5in,
+    row-gutter: .5in,
+    grid.cell(
+      colspan: 2,
+      rectwhite[
+        The plots in this section show the demographic profile of the survey sample in comparison to the overall Kansas City population. The survey was completed by 648 residents. The survey sample closely reflects the city's population by sex, race, and Hispanic origin. The age of the sample skews older than the city's population, which may be the result of older citizens being more willing to respond to surveys (or something).
+        
+        Dark vertical lines on some bars indicate the estimated citywide percentage of the population category sampled. Citywide population estimates were taken from the 2023 5-Year American Community Survey conducted by the US Census Bureau.
+      ]
+    ),
+    figure(
+      image("figs/sex.png"),
+      caption: [`r samp$sex$cap`]
+    ),
+    figure(
+      image("figs/age.png"),
+      caption: [`r samp$age$cap`]
+    ),
+    grid.cell(
+      colspan: 2,
+      rectgrey[
+        #figure(
+          image("figs/pyramid.png"),
+          caption: [`r samp$age_sex$cap`]
+        )
+      ]
+    )
   )
-)
-
-#pagebreak()
+]
 ```
 
 ```{=typst}
-== Race and Hispanic Origin
-
-#v(.5in)
-
-#rectgrey[
-  #figure(
-    image("plot-race-ethn-bwo.png"),
-    caption: [`r samp$race_ethn_bwo$cap`]
-  )
+#page[
+  == Race and Hispanic Origin
+  
+  #v(.5in)
+  
+  #rectwhite[
+    #figure(
+      image("figs/race-ethn-bwo.png"),
+      caption: [`r samp$race_ethn_bwo$cap`]
+    )
+  ]
+  
+  #v(.5in)
+  
+  #rectgrey[
+    #figure(
+      image("figs/hispanic.png"),
+      caption: [`r samp$hispanic_origin$cap`]
+    )
+  ]
 ]
-
-#v(.5in)
-
-#rectgrey[
-  #figure(
-    image("plot-hispanic.png"),
-    caption: [`r samp$hispanic_origin$cap`]
-  )
-]
-
-#pagebreak()
 ```
 
 ```{=typst}
-= Mental Health Questions
-== Anxiety
-
-#v(.5in)
-
-#lorem(50)
-
-#rectwhite[
-  #figure(
-    image("plot-q4-1.png"),
-    caption: [`r mhcaps$cap[mhcaps$number == "4_1"]`]
-  )
+#page[
+  = Mental Health Questions
+  == Anxiety
+  
+  #v(.5in)
+  
+  #lorem(50)
+  
+  #rectgrey[
+    #figure(
+      image("figs/q4-1.png"),
+      caption: [`r mhcaps$cap[mhcaps$number == "4_1"]`]
+    )
+  ]
+  
+  #v(.5in)
+  
+  #lorem(50)
+  
+  #rectwhite[
+    #figure(
+      image("figs/q4-2.png"),
+      caption: [`r mhcaps$cap[mhcaps$number == "4_2"]`]
+    )
+  ]
 ]
-
-#v(.5in)
-
-#lorem(50)
-
-#rectgrey[
-  #figure(
-    image("plot-q4-2.png"),
-    caption: [`r mhcaps$cap[mhcaps$number == "4_2"]`]
-  )
-]
-
-#pagebreak()
 ```
 
 

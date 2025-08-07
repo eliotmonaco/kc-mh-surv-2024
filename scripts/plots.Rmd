@@ -1,0 +1,67 @@
+---
+title: "Plot MH questions"
+output:
+  html_notebook:
+    css: "style.css"
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  dev = "svg"
+)
+
+knitr::opts_knit$set(
+  progress = FALSE,
+  verbose = FALSE
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+```
+
+```{r}
+source("fn.R")
+source("fn2.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mh_codebook.rds")
+```
+
+```{r}
+mhsmry <- summarize_dataset()
+```
+
+```{r}
+mhfigs <- imap(mhsmry, \(df, x) plot_data(df, x))
+names(mhfigs) <- names(mhsmry)
+```
+
+```{r results='asis'}
+for (i in 1:length(mhfigs)) {
+  q <- gsub("_", "-", names(mhfigs)[i])
+  nm <- paste0("fig-", q)
+  h <- ifelse(grepl("q11", q), 10, 6)
+  
+  chunk <- sprintf(
+    "```{r %s, fig.height=%s, fig.width=10}
+    print(
+      mhfigs[[i]]$plot |>
+        add_caption(mhfigs[[i]]$cap, size = 15, width = 110)
+    )
+    ```",
+    nm, h
+  )
+
+  print_md_text(paste("##", toupper(q)))
+  print_md_chunk(chunk)
+}
+```
+
+```{r}
+saveRDS(mhfigs, "../data/2-final/figures_ungrouped.rds")
+```

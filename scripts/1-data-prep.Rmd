@@ -12,6 +12,7 @@ Prepare results from the KCHD 2024 Mental Health Survey for analysis.
 ```{r message=FALSE}
 library(tidyverse)
 library(readxl)
+library(kcData)
 library(sf)
 ```
 
@@ -47,17 +48,17 @@ hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
 Rename variables.
 
 ```{r}
-colnames(mhsurv) <- cb$key$nm2[cb$key$in_src]
+colnames(mhsurv) <- cb$key$var2[cb$key$in_source]
 ```
 
-## Validate
+## Validate survey data
 
 ### `id`
 
 Validate `id`.
 
 ```{r}
-any(duplicated(mhsurv$id))
+sum(duplicated(mhsurv$id))
 ```
 
 Check if `id` & `id2` are identical.
@@ -72,7 +73,7 @@ Missing or invalid race/ethnicity values.
 
 ```{r}
 mhsurv |>
-  filter(if_all(race_ethn_01:race_ethn_08, ~ !.x %in% cb$race_ethn$number)) |>
+  filter(if_all(re01:re08, ~ !.x %in% cb$re1$code)) |>
   nrow()
 ```
 
@@ -80,7 +81,7 @@ Missing or invalid birth sex values.
 
 ```{r}
 mhsurv |>
-  filter(!birth_sex %in% cb$birth_sex$number) |>
+  filter(!birth_sex %in% cb$birthsex$code) |>
   nrow()
 ```
 
@@ -88,7 +89,7 @@ Missing or invalid current gender values.
 
 ```{r}
 mhsurv |>
-  filter(if_all(cur_gen_01:cur_gen_06, ~ !.x %in% cb$cur_gen$number)) |>
+  filter(if_all(cg01:cg06, ~ !.x %in% cb$curgen$code)) |>
   nrow()
 ```
 
@@ -96,7 +97,15 @@ Missing or invalid age values.
 
 ```{r}
 mhsurv |>
-  filter(is.na(age1) | !age1 %in% cb$age1$number) |>
+  filter(is.na(age1) | !age1 %in% cb$age1$code) |>
+  nrow()
+```
+
+Invalid ZIP codes.
+
+```{r}
+mhsurv |>
+  filter(!zip %in% geoids$zcta$ids2024) |>
   nrow()
 ```
 
@@ -107,12 +116,12 @@ Validate question data against expected values in the codebook.
 ```{r}
 key <- cb$key
 
-vars <- key$nm2[grepl("^race_ethn_\\d|^birth_|^cur_gen_\\d|age1|^q\\d", key$nm2)]
+vars <- key$var2[!is.na(key$sh_validate)]
 
 ls <- lapply(vars, \(x) {
-  sh <- key[which(key$nm2 == x), "code_val", drop = TRUE]
+  sh <- key[which(key$var2 == x), "sh_validate", drop = TRUE]
   vals <- unique(mhsurv[[x]])
-  vals[!vals %in% cb[[sh]]$number]
+  vals[!vals %in% cb[[sh]]$code]
 })
 
 names(ls) <- vars
@@ -159,23 +168,29 @@ mhsurv |>
 
 Questions 16 and 18 (time of day) validated in scoring section below.
 
-## Codebook
+## Configure codebook data
 
 Convert question data to factor.
 
 ```{r}
 # Factorize as-is
-sh <- unique(key[which(key$factor_dir == "asis"), "code_score", drop = TRUE])
+sh <- cb$factors |>
+  filter(dir == 1) |>
+  pull(factor)
+
 cb[sh] <- lapply(sh, \(x) {
   cb[[x]] |>
-    mutate(text = factor(text, levels = text))
+    mutate(value = factor(value, levels = value))
 })
 
 # Factorize in reverse
-sh <- unique(key[which(key$factor_dir == "rev"), "code_score", drop = TRUE])
+sh <- cb$factors |>
+  filter(dir == 2) |>
+  pull(factor)
+
 cb[sh] <- lapply(sh, \(x) {
   cb[[x]] |>
-    mutate(text = factor(text, levels = rev(text)))
+    mutate(value = factor(value, levels = rev(value)))
 })
 ```
 
@@ -183,36 +198,36 @@ cb[sh] <- lapply(sh, \(x) {
 
 ## Race/ethnicity
 
-Combine multiple answers (`race_ethn_combined`).
+Merge separate variables (`re_merge`).
 
 ```{r}
 # Create list column for race/ethnicity values
 mhsurv <- mhsurv |>
   rowwise() |>
   mutate(
-    race_ethn_n = list(c_across(matches("race_ethn_\\d"))),
-    .after = race_ethn_other
+    re_code = list(c_across(matches("re\\d"))),
+    .after = re_other
   ) |>
   ungroup()
 
 # Remove NAs from lists
-mhsurv$race_ethn_n <- lapply(mhsurv$race_ethn_n, \(x) x[!is.na(x)])
+mhsurv$re_code <- lapply(mhsurv$re_code, \(x) x[!is.na(x)])
 
 # Replace numbers with text from codebook
-mhsurv$race_ethn_t1 <- lapply(mhsurv$race_ethn_n, \(x) {
-  r <- which(cb$race_ethn1$number %in% x)
-  cb$race_ethn1$text[r]
+mhsurv$re_val1 <- lapply(mhsurv$re_code, \(x) {
+  r <- which(cb$re1$code %in% x)
+  cb$re1$value[r]
 })
-mhsurv$race_ethn_t2 <- lapply(mhsurv$race_ethn_n, \(x) {
-  r <- which(cb$race_ethn2$number %in% x)
-  cb$race_ethn2$text[r]
+mhsurv$re_val2 <- lapply(mhsurv$re_code, \(x) {
+  r <- which(cb$re2$code %in% x)
+  cb$re2$value[r]
 })
 
 # Combine lists into strings
-mhsurv$race_ethn_combined1 <- lapply(mhsurv$race_ethn_t1, \(x) {
+mhsurv$re_merge1 <- lapply(mhsurv$re_val1, \(x) {
  paste(x, collapse = "; ")
 })
-mhsurv$race_ethn_combined2 <- lapply(mhsurv$race_ethn_t2, \(x) {
+mhsurv$re_merge2 <- lapply(mhsurv$re_val2, \(x) {
  paste(x, collapse = "; ")
 })
 
@@ -220,22 +235,22 @@ mhsurv$race_ethn_combined2 <- lapply(mhsurv$race_ethn_t2, \(x) {
 mhsurv <- mhsurv |>
   rowwise() |>
   mutate(
-    race_ethn_combined1 = unlist(if_else(
-      race_ethn_combined1 == "", NA, race_ethn_combined1
+    re_merge1 = unlist(if_else(
+      re_merge1 == "", NA, re_merge1
     )),
-    race_ethn_combined2 = unlist(if_else(
-      race_ethn_combined2 == "", NA, race_ethn_combined2
+    re_merge2 = unlist(if_else(
+      re_merge2 == "", NA, re_merge2
     ))
   ) |>
   ungroup() |>
   relocate(
-    race_ethn_t1, race_ethn_combined1,
-    race_ethn_t2, race_ethn_combined2,
-    .after = race_ethn_n
+    re_val1, re_merge1,
+    re_val2, re_merge2,
+    .after = re_code
   )
 ```
 
-Create collapsed category (`race_ethn_bwo`).
+Create collapsed category (`re_bwo`).
 
 - "Black" includes anyone who selected only "African-American/Black" or "African".
 - "White" includes anyone who selected only "Middle Eastern or Northern African" or "White/Caucasian".
@@ -244,15 +259,15 @@ Create collapsed category (`race_ethn_bwo`).
 ```{r}
 mhsurv <- mhsurv |>
   mutate(
-    race_ethn_bwo = case_when(
-      grepl("Asian|Hispanic|IndAm|Other|;", race_ethn_combined2) ~ "Other",
-      grepl("AfAm|African", race_ethn_combined2) ~ "Black",
-      grepl("MENA|White", race_ethn_combined2) ~ "White"
+    re_bwo = case_when(
+      grepl("Asian|Hispanic|IndAm|Other|;", re_merge2) ~ "Other",
+      grepl("AfAm|African", re_merge2) ~ "Black",
+      grepl("MENA|White", re_merge2) ~ "White"
     ),
-    .after = race_ethn_combined2
+    .after = re_merge2
   ) |>
-  mutate(race_ethn_bwo = factor(
-    race_ethn_bwo,
+  mutate(re_bwo = factor(
+    re_bwo,
     levels = c("Black", "White", "Other")
   ))
 ```
@@ -268,9 +283,9 @@ Hispanic origin is a variable created from responses to the race/ethnicity quest
 mhsurv <- mhsurv |>
   mutate(
     hispanic_origin = if_else(
-      race_ethn_04 == 4, "Hispanic", "Not Hispanic", missing = "Not Hispanic"
+      re04 == 4, "Hispanic", "Not Hispanic", missing = "Not Hispanic"
     ),
-    .after = race_ethn_bwo
+    .after = re_bwo
   ) |>
   mutate(hispanic_origin = factor(
     hispanic_origin,
@@ -280,40 +295,40 @@ mhsurv <- mhsurv |>
 
 ## Current gender
 
-Combine multiple answers (`cur_gen_combined`).
+Merge separate variables (`cg_merge`).
 
 ```{r}
 # Create list column for race/ethnicity values
 mhsurv <- mhsurv |>
   rowwise() |>
   mutate(
-    cur_gen_n = list(c_across(matches("cur_gen_\\d"))),
-    .after = cur_gen_self_id
+    cg_n = list(c_across(matches("cg\\d"))),
+    .after = cg_self_id
   ) |>
   ungroup()
 
 # Remove NAs from lists
-mhsurv$cur_gen_n <- lapply(mhsurv$cur_gen_n, \(x) x[!is.na(x)])
+mhsurv$cg_n <- lapply(mhsurv$cg_n, \(x) x[!is.na(x)])
 
 # Replace numbers with text from codebook
-mhsurv$cur_gen_t <- lapply(mhsurv$cur_gen_n, \(x) {
-  r <- which(cb$cur_gen$number %in% x)
-  cb$cur_gen$text[r]
+mhsurv$cg_val <- lapply(mhsurv$cg_n, \(x) {
+  r <- which(cb$curgen$code %in% x)
+  cb$curgen$value[r]
 })
 
 # Combine lists into strings
-mhsurv$cur_gen_combined <- lapply(mhsurv$cur_gen_t, \(x) {
+mhsurv$cg_merge <- lapply(mhsurv$cg_val, \(x) {
  paste(x, collapse = "; ")
 })
 
 # Replace blanks with NA
 mhsurv <- mhsurv |>
   rowwise() |>
-  mutate(cur_gen_combined = unlist(if_else(
-    cur_gen_combined == "", NA, cur_gen_combined
+  mutate(cg_merge = unlist(if_else(
+    cg_merge == "", NA, cg_merge
   ))) |>
   ungroup() |>
-  relocate(cur_gen_t, cur_gen_combined, .after = cur_gen_n)
+  relocate(cg_val, cg_merge, .after = cg_n)
 ```
 
 ## Age
@@ -337,6 +352,13 @@ mhsurv <- mhsurv |>
   mutate(across(c(block_lon, block_lat), ~ .x / 10^6))
 ```
 
+## ZIP codes
+
+```{r}
+mhsurv <- mhsurv |>
+  mutate(zip = factor(zip, levels = geoids$zcta$ids2024))
+```
+
 ## HOI region
 
 Join HOI region variable.
@@ -357,26 +379,9 @@ mhsurv <- mhsurv |>
   relocate(hoi_region = region, .after = block_lat)
 ```
 
-# Recode & score questions
+# Validate MH questions
 
-## Q8: Pre/post COVID-19
-
-Group responses to Q8 as "Better", "About the same", or "Worse".
-
-```{r}
-mhsurv <- mhsurv |>
-  mutate(
-    q8_recode = case_when(
-      q8 == 1 | q8 == 2 ~ 1, # Better
-      q8 == 3           ~ 2, # About the same
-      q8 == 4 | q8 == 5 ~ 3, # Worse
-      .default = q8
-    ),
-    .after = q8
-  )
-```
-
-## Q11: Needed but didn't get treatment
+## Q11: Treatment barriers
 
 Q11 should only be completed if the answer to Q10 is `1` ("Yes").
 
@@ -384,11 +389,11 @@ Count responses to Q10.
 
 ```{r}
 mhsurv |>
-  mutate(number = q10) |>
-  group_by(number) |>
+  mutate(code = q10) |>
+  group_by(code) |>
   count() |>
-  left_join(cb$yn, by = "number") |>
-  relocate(text, .after = number)
+  left_join(cb$yn, by = "code") |>
+  relocate(value, .after = code)
 ```
 
 Count rows where Q10 is `1` and any Q11 part is `NA`.
@@ -411,19 +416,18 @@ mhsurv |>
 
 ## Q13: Social isolation
 
-### Explore
-
 Count `NA`s.
 
 ```{r}
-cols <- colnames(mhsurv)[grepl("^q13_\\d", colnames(mhsurv))]
-apply(mhsurv[, cols], 2, \(x) sum(is.na(x)))
+vars <- colnames(mhsurv)[grepl("^q13_\\d", colnames(mhsurv))]
+
+apply(mhsurv[, vars], 2, \(x) sum(is.na(x)))
 ```
 
 Count "Don't know"s (`9`s).
 
 ```{r}
-apply(mhsurv[, cols], 2, \(x) sum(ifelse(x == 9, TRUE, FALSE)))
+apply(mhsurv[, vars], 2, \(x) sum(ifelse(x == 9, TRUE, FALSE)))
 ```
 
 Count respondents without any "Don't know"s.
@@ -438,7 +442,7 @@ Plot the number of "Don't know"s per respondent.
 
 ```{r}
 ls$q13 <- data.frame(n_dontknow = apply(
-  mhsurv[, cols], 1, \(x) sum(ifelse(x == 9, TRUE, FALSE))
+  mhsurv[, vars], 1, \(x) sum(ifelse(x == 9, TRUE, FALSE))
 ))
 
 ls$q13$n_answered <- 11 - ls$q13$n_dontknow
@@ -450,7 +454,78 @@ ls$q13 |>
   geom_histogram(binwidth = 1)
 ```
 
-### Score
+## Q14: Social media addiction
+
+Count `NA`s.
+
+```{r}
+vars <- colnames(mhsurv)[grepl("^q14_\\d", colnames(mhsurv))]
+
+apply(mhsurv[, vars], 2, \(x) sum(is.na(x)))
+```
+
+Count "Don't know"s (`9`s).
+
+```{r}
+apply(mhsurv[, vars], 2, \(x) sum(ifelse(x == 9, TRUE, FALSE)))
+```
+
+Count respondents without any "Don't know"s.
+
+```{r}
+mhsurv |>
+  filter(!if_any(matches("^q14_\\d"), ~ .x == 9)) |>
+  nrow()
+```
+
+Plot the number of "Don't know"s per respondent.
+
+```{r}
+ls$q14 <- data.frame(n_dontknow = apply(
+  mhsurv[, vars], 1, \(x) sum(ifelse(x == 9, TRUE, FALSE))
+))
+
+ls$q14$n_answered <- 6 - ls$q14$n_dontknow
+```
+
+```{r fig.width=6}
+ls$q14 |>
+  ggplot(aes(n_dontknow)) +
+  geom_histogram(binwidth = 1)
+```
+
+# Score MH questions
+
+## Q8: MH pre/post COVID-19
+
+Group responses to Q8 as "Better", "About the same", or "Worse".
+
+```{r}
+mhsurv <- mhsurv |>
+  mutate(
+    q8a = case_when(
+      q8 %in% 1:2 ~ 1, # Better
+      q8 == 3     ~ 2, # About the same
+      q8 %in% 4:5 ~ 3, # Worse
+      .default = NA
+    ),
+    .after = q8
+  )
+```
+
+## Q10: Needed but didn't get treatment
+
+Add Q10 result filtered by those who answered "Yes" to Q9 (respondents currently on meds or receiving treatment).
+
+```{r}
+mhsurv <- mhsurv |>
+  mutate(
+    q10a = if_else(q9 == 1, q10, NA),
+    .after = q10
+  )
+```
+
+## Q13: Social isolation
 
 Reverse scale for questions 01, 04, 07, 08, and 11 so that `1` represents low social isolation and `5` represents high social isolation.
 
@@ -468,121 +543,99 @@ mhsurv <- mhsurv |>
   ))
 ```
 
-Sum the responses to each part to calculate a total social isolation score.
+Sum the responses to each part to calculate a composite social isolation score.
 
 ```{r}
-mhsurv$q13_scored <- rowSums(mhsurv[, cols])
+vars <- colnames(mhsurv)[grepl("^q13_\\d", colnames(mhsurv))]
+
+mhsurv$si_comp <- rowSums(mhsurv[, vars])
 ```
 
 Drop scores in rows with any "Don't know"s.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(q13_scored = if_else(
+  mutate(si_comp = if_else(
     if_any(matches("^q13_\\d"), ~ .x == 9),
     NA,
-    q13_scored
+    si_comp
   ))
 ```
 
-Assign range values.
+Plot scores.
+
+```{r}
+mhsurv |>
+  drop_na(si_comp) |>
+  ggplot() +
+  geom_histogram(aes(si_comp), binwidth = 1)
+```
+
+Bin values into low, medium, and high categories. Factorize raw scores.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(q13_binned = case_when(
-    q13_scored >= 11 & q13_scored <= 25 ~ 1, # Low
-    q13_scored >= 26 & q13_scored <= 40 ~ 2, # Medium
-    q13_scored >= 41 & q13_scored <= 55 ~ 3, # High
-    .default = NA
+  mutate(si_bin = cut(
+    si_comp, breaks = 3, labels = c("Low", "Medium", "High")
   )) |>
-  relocate(q13_scored, q13_binned, .after = q13_11)
+  mutate(si_fac = factor(si_comp, levels = minmax_seq(si_comp))) |>
+  relocate(si_comp, si_fac, si_bin, .after = q13_11)
 ```
 
 ## Q14: Social media addiction
 
-### Explore
-
-Count `NA`s.
+Sum the responses to each part to calculate a composite social media addiction score.
 
 ```{r}
-cols <- colnames(mhsurv)[grepl("^q14_\\d", colnames(mhsurv))]
-apply(mhsurv[, cols], 2, \(x) sum(is.na(x)))
-```
+vars <- colnames(mhsurv)[grepl("^q14_\\d", colnames(mhsurv))]
 
-Count "Don't know"s (`9`s).
-
-```{r}
-apply(mhsurv[, cols], 2, \(x) sum(ifelse(x == 9, TRUE, FALSE)))
-```
-
-Count respondents without any "Don't know"s.
-
-```{r}
-mhsurv |>
-  filter(!if_any(matches("^q14_\\d"), ~ .x == 9)) |>
-  nrow()
-```
-
-Plot the number of "Don't know"s per respondent.
-
-```{r}
-ls$q14 <- data.frame(n_dontknow = apply(
-  mhsurv[, cols], 1, \(x) sum(ifelse(x == 9, TRUE, FALSE))
-))
-
-ls$q14$n_answered <- 6 - ls$q14$n_dontknow
-```
-
-```{r fig.width=6}
-ls$q14 |>
-  ggplot(aes(n_dontknow)) +
-  geom_histogram(binwidth = 1)
-```
-
-### Score
-
-Sum the responses to each part to calculate a total social media addiction score.
-
-```{r}
-mhsurv$q14_scored <- rowSums(mhsurv[, cols])
+mhsurv$sm_comp <- rowSums(mhsurv[, vars])
 ```
 
 Drop scores in rows with any "Don't know"s.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(q14_scored = if_else(
+  mutate(sm_comp = if_else(
     if_any(matches("^q14_\\d"), ~ .x == 9),
     NA,
-    q14_scored
+    sm_comp
   ))
 ```
 
-Assign range values.
+Plot scores.
+
+```{r}
+mhsurv |>
+  drop_na(sm_comp) |>
+  ggplot() +
+  geom_histogram(aes(sm_comp), binwidth = 1)
+```
+
+Bin values into low, medium, and high categories. Factorize raw scores.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(q14_binned = case_when(
-    q14_scored >= 6 & q14_scored <= 13 ~ 1, # Low
-    q14_scored >= 14 & q14_scored <= 22 ~ 2, # Medium
-    q14_scored >= 23 & q14_scored <= 30 ~ 3, # High
-    .default = NA
+  mutate(sm_add_bin = cut(
+    sm_comp, breaks = 3, labels = c("Low", "Medium", "High")
   )) |>
-  relocate(q14_scored, q14_binned, .after = q14_6)
+  mutate(sm_add_fac = factor(sm_comp, levels = minmax_seq(sm_comp))) |>
+  relocate(sm_comp, sm_add_fac, sm_add_bin, .after = q14_6)
 ```
 
-## Q15: Hours on social media
+## Q15: Social media use
 
 Assign range values.
 
 ```{r}
 mhsurv <- mhsurv |>
   mutate(
-    q15_scored = case_when(
-      q15 == 0 ~ 1,
-      q15 >= 1 & q15 <= 4 ~ 2,
-      q15 >= 5 & q15 <= 8 ~ 3,
-      q15 > 8 & q15 <= 24 ~ 4,
+    sm_use_fac = factor(q15, levels = minmax_seq(q15)),
+    sm_use_bin = case_when(
+      q15 == 0             ~ 1,
+      q15 >= 1 & q15 <= 4  ~ 2,
+      q15 >= 5 & q15 <= 8  ~ 3,
+      q15 >  8 & q15 <= 24 ~ 4,
       .default = NA
     ),
     .after = q15
@@ -636,11 +689,9 @@ mhsurv |>
 Calculate the number of hours spent in bed.
 
 ```{r}
-mhsurv$hrs_in_bed <- as.numeric(difftime(
-  mhsurv$wake2,
-  mhsurv$bed2,
-  "hours"
-))
+mhsurv$hrs_in_bed <- as.numeric(
+  difftime(mhsurv$wake2, mhsurv$bed2, "hours")
+)
 ```
 
 Validate `hrs_in_bed`.
@@ -670,7 +721,7 @@ Filter out percentages > 100.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(hse_scored = if_else(hse_pct > 100, NA, hse_scored))
+  mutate(hse = if_else(hse_pct > 100, NA, hse_scored))
 ```
 
 ## Q17: Time to fall asleep
@@ -679,95 +730,112 @@ Assign range values.
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(q17 = case_when(
-    q17 > 0 & q17 <= 10 ~ 1,
-    q17 >= 11 & q17 <= 30 ~ 2,
-    q17 >= 31 & q17 <= 60 ~ 3,
-    q17 >= 61 & q17 <= 120 ~ 4,
-    q17 >= 121 & q17 <= 3600 ~ 5,
-    .default = NA
-  ))
+  mutate(
+    min_to_sleep_fac = factor(q17, levels = minmax_seq(q17)),
+    min_to_sleep_bin = case_when(
+      q17             <  5  ~ 1,
+      q17 >=  5 & q17 < 10  ~ 2,
+      q17 >= 10 & q17 < 15  ~ 3,
+      q17 >= 15 & q17 < 20  ~ 4,
+      q17 >= 20 & q17 < 25  ~ 5,
+      q17 >= 25 & q17 < 30  ~ 6,
+      q17 >= 30 & q17 < 45  ~ 7,
+      q17 >= 45 & q17 < 60  ~ 8,
+      q17 >= 60 & q17 < 90  ~ 9,
+      q17 >= 90 & q17 < 120 ~ 10,
+      q17 >= 120            ~ 11,
+      .default = NA
+    ),
+    .after = q17
+  )
+```
+
+## Q19: Hours slept
+
+```{r}
+mhsurv <- mhsurv |>
+  mutate(
+    hrs_slept_fac = factor(q19, levels = minmax_seq(q19)),
+    .after = q19
+  )
 ```
 
 # Select data for analysis
 
 ```{r}
-vars <- c(
-  "id", "race_ethn_combined1", "race_ethn_combined2", "race_ethn_other",
-  "race_ethn_bwo", "hispanic_origin", "birth_sex", "cur_gen_combined",
-  "age1", "age2", "q4_1", "q4_2", "q4_3", "q4_4", "q5", "q6",
-  "q7", "q8_recode", "q9", "q10", "q11_01", "q11_02", "q11_03", "q11_04",
-  "q11_05", "q11_06", "q11_07", "q11_08", "q11_09", "q11_10", "q12",
-  "q13_binned", "q14_binned", "q15_scored", "hse_scored", "q17", "zip",
-  "district", "block_lon", "block_lat", "hoi_region"
-)
+mhsurv <- mhsurv |>
+  rename(
+    re_full = re_merge1,
+    re_abbr = re_merge2,
+    cg = cg_merge,
+    si_num = si_comp,
+    sm_add_num = sm_comp,
+    sm_use_num = q15,
+    min_to_sleep_num = q17,
+    hrs_slept_num = q19
+  )
 ```
 
 ```{r}
-mhsurv2 <- mhsurv |>
-  select(all_of(vars)) |>
-  rename(
-    q8 = q8_recode,
-    q13_01 = q13_binned,
-    q14_1 = q14_binned,
-    q15 = q15_scored,
-    q16 = hse_scored
-  )
+vars <- key$var2[key$in_final]
 
-vars <- colnames(mhsurv2)
+mhsurv <- mhsurv |>
+  select(all_of(vars))
 ```
 
-# Substitute text values
+# Recode selected variables
 
-Recode question values from codebook.
+Get pre-replacement column order.
 
 ```{r}
 cols <- list()
-cols[[1]] <- sort(colnames(mhsurv2))
+cols[[1]] <- sort(colnames(mhsurv))
 ```
 
-```{r}
-vars <- c(
-  "birth_sex", "age1", "age2", "q4_1", "q4_2", "q4_3", "q4_4", "q5", "q6", "q7",
-  "q8", "q9", "q10", "q11_01", "q11_02", "q11_03", "q11_04", "q11_05", "q11_06",
-  "q11_07", "q11_08", "q11_09", "q11_10", "q12", "q13_01", "q14_1", "q15",
-  "q16", "q17"
-)
-```
+Recode.
 
 ```{r}
+vars <- key$var2[!is.na(key$sh_recode)]
+
 ls <- lapply(vars, \(x) {
-  sh <- key$code_score[which(key$nm2 == x)]
-  alts <- setNames(cb[[sh]]$text, cb[[sh]]$number)
-  unname(alts[mhsurv2[[x]]])
+  sh <- key$sh_recode[which(key$var2 == x)]
+  vals <- setNames(cb[[sh]]$value, cb[[sh]]$code)
+  unname(vals[mhsurv[[x]]])
 })
+
 ls <- as.data.frame(ls, col.names = vars)
 ```
 
-```{r}
-mhsurv2 <- cbind(mhsurv2[, !colnames(mhsurv2) %in% vars], ls)
-```
+Replace original columns in `mhsurv`.
 
 ```{r}
-# Reorder columns
-vars <- list()
-vars$demo <- c(
-  "race_ethn_combined1", "race_ethn_combined2", "race_ethn_other",
-  "race_ethn_bwo", "hispanic_origin", "birth_sex", "cur_gen_combined",
-  "age1", "age2"
+mhsurv <- cbind(mhsurv[, !colnames(mhsurv) %in% vars], ls)
+```
+
+Reorder columns.
+
+```{r}
+vars <- c(
+  key$var2[which(key$group == "demo")],
+  key$var2[which(key$group == "geo")],
+  key$var2[which(key$group == "mh")]
 )
-vars$geo <- c("zip", "district", "hoi_region", "block_lon", "block_lat")
-vars$questions <- colnames(mhsurv2)[grepl("^q\\d", colnames(mhsurv2))]
 
-mhsurv2 <- mhsurv2 |>
-  select(id, all_of(vars$demo), all_of(vars$geo), all_of(vars$questions))
-
-cols[[2]] <- sort(colnames(mhsurv2))
+mhsurv <- mhsurv |>
+  select(all_of(vars))
 ```
+
+Get post-replacement column order.
+
+```{r}
+cols[[2]] <- sort(colnames(mhsurv))
+```
+
+Compare pre- and post-replacement column orders.
 
 ```{r}
 if (!isTRUE(all.equal(cols[[1]], cols[[2]]))) {
-  warning("Columns unequal after reordering")
+  warning("Columns are unequal after reordering")
 }
 ```
 
@@ -775,5 +843,5 @@ if (!isTRUE(all.equal(cols[[1]], cols[[2]]))) {
 
 ```{r}
 saveRDS(cb, "../data/2-final/mh_codebook.rds")
-saveRDS(mhsurv2, "../data/2-final/mh_survey_results.rds")
+saveRDS(mhsurv, "../data/2-final/mh_survey_results.rds")
 ```

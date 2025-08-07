@@ -10,7 +10,7 @@
   set text(font: "Calibri", size: 12pt)
 
   set page(
-    margin: (x: 0.5in, y: 0.5in),
+    margin: (x: .5in, y: .5in),
     footer: context {
       if counter(page).get().first() > 1 [ // footer only after p1
         #upper(title)
@@ -21,16 +21,18 @@
   )
 
   // Title page
-  page(background: [#image("banner.png", width: 100%)])[
+  page(background: rect(fill: navy, width: 100%, height: 3in))[
+    #set text(fill: white, weight: "bold")
+    #set align(center)
+    #set block(width: 6in)
     #v(1fr)
-    #block(width: 100%)[
-      #place(center + horizon, dy: -10pt)[
-        #text(fill: white, size: 20pt, weight: "bold")[
-          #title \
-          #author
-        ]
+    #grid(
+      columns: 1, rows: 1,
+      block[
+        #text(size: 32pt)[#title] \
+        #text(size: 24pt)[#author]
       ]
-    ]
+    )
     #v(1fr)
   ]
 

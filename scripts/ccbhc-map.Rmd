@@ -1,0 +1,135 @@
+---
+title: "CCBHC map"
+output: html_notebook
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(sf)
+library(kcData)
+```
+
+```{r}
+source("fn.R")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+ccbhcs <- readRDS("../data/2-final/ccbhc_sites.rds")
+```
+
+```{r}
+kcmap <- sf_city_2024
+```
+
+```{r}
+d <- units::set_units(10, "mile")
+
+# Filter points by proximity to KC
+ccbhcs <- cbind(
+  ccbhcs,
+  close = st_is_within_distance(
+    ccbhcs,
+    kcmap,
+    dist = d,
+    sparse = FALSE
+  )
+)
+```
+
+```{r}
+ggplot(kcmap) +
+  geom_sf(linewidth = 1) +
+  geom_sf(
+    data = st_buffer(kcmap, dist = d),
+    color = "red",
+    fill = NA
+  ) +
+  geom_sf(
+    aes(color = close),
+    data = ccbhcs,
+    shape = 18,
+    size = 4
+  )
+```
+
+```{r}
+pal <- mh_palette("blueorange", length(unique(ccbhcs$org)))
+
+map1 <- ggplot(data = kcmap) +
+  geom_sf(linewidth = 1) +
+  geom_sf(
+    aes(fill = org),
+    data = ccbhcs[ccbhcs$city == "Kansas City", ],
+    shape = 21,
+    size = 4,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    name = "CCBHCs",
+    values = pal
+  ) +
+  theme_void()
+
+map1
+```
+
+```{r}
+kcmap2 <- st_transform(sf_city_2024, crs = st_crs(3857))
+ext <- st_bbox(kcmap2)
+exp <- 5000
+ext[1] <- ext[1] - exp
+ext[2] <- ext[2] - exp
+ext[3] <- ext[3] + exp
+ext[4] <- ext[4] + exp
+
+ccbhcs2 <- st_transform(
+  ccbhcs[ccbhcs$city == "Kansas City", ],
+  crs = st_crs(3857)
+)
+
+pal <- mh_palette("blueorange", length(unique(ccbhcs2$org)))
+
+map2 <- basemaps::basemap_ggplot(
+    ext = ext,
+    map_service = "osm",
+    map_type = "streets",
+    map_res = 1,
+    verbose = FALSE
+  ) +
+  geom_sf(
+    data = kcmap2,
+    fill = "navy",
+    color = NA,
+    alpha = .2
+  ) +
+  coord_sf() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme_void() +
+  ggnewscale::new_scale_fill() +
+  geom_sf(
+    aes(fill = org),
+    data = ccbhcs2,
+    shape = 21,
+    size = 4,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = pal,
+    name = "CCBHCs"
+  )
+
+map2
+```
+
+```{r}
+ccbhc_map <- list(
+  plot = map2,
+  cap = "CCBHC locations in Kansas City identified by KCHD as of July 2025."
+)
+```
+
+```{r}
+saveRDS(ccbhc_map, "../data/2-final/ccbhc_map.rds")
+```
