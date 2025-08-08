@@ -22,9 +22,8 @@ library(tidyverse)
 library(setmeup)
 ```
 
-```{r}
-source("fn.R")
-source("fn2.R")
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
 ```
 
 ```{r}
@@ -39,6 +38,37 @@ mhsmry <- summarize_dataset()
 ```{r}
 mhfigs <- imap(mhsmry, \(df, x) plot_data(df, x))
 names(mhfigs) <- names(mhsmry)
+```
+
+```{r}
+# Histogram for `slp_lat`
+df <- mhsurv |>
+  drop_na(slp_lat)
+
+p <- df |>
+  ggplot(aes(x = slp_lat)) +
+  geom_bar(fill = "#4f0a6b") +
+  scale_x_binned(
+    breaks = seq(0, 180, 5),
+    expand = c(0, NA)
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 140, 20),
+    expand = c(0, NA)
+  ) +
+  labs(x = "\nSleep latency (minutes)", y = "Number of responses\n") +
+  theme_classic() +
+  theme(
+    plot.background = element_rect(fill = NA, color = NA),
+    panel.background = element_rect(fill = NA, color = NA),
+    axis.line = element_line(color = "#555555"),
+    axis.ticks = element_line(color = "#555555"),
+    plot.margin = margin(t = 50, b = 50, r = 20, l = 20)
+  )
+
+cap <- paste0("N = ", nrow(df), ".")
+
+mhfigs$slp_lat <- list(plot = p, cap = cap)
 ```
 
 ```{r results='asis'}

@@ -112,29 +112,33 @@ print_from_md_file <- function(md, head, type) {
 
   # Get footnote reference, if present
   p <- "\\[\\^\\d+\\]"
-
+# browser()
   if (grepl(p, text)) {
-    ft <- regmatches(text, m = regexpr(p, text))
+    ft_all <- regmatches(text, m = gregexpr(p, text))[[1]]
 
-    ft <- regmatches(ft, m = regexpr("\\d+", ft))
+    ft <- lapply(ft_all, \(x) {
+      ft <- regmatches(x, m = regexpr("\\d+", x))
 
-    p <- paste0("\\[\\^", ft, "\\]:")
+      p <- paste0("\\[\\^", ft, "\\]:")
 
-    i <- which(grepl(p, md))
+      i <- which(grepl(p, md))
 
-    p <- "^\\[\\^\\d+\\]:|^#"
+      p <- "^\\[\\^\\d+\\]:|^#"
 
-    m <- which(grepl(p, md))
+      m <- which(grepl(p, md))
 
-    i <- which(m == i)
+      i <- which(m == i)
 
-    if (length(m) > i) {
-      rng <- m[i]:(m[i + 1] - 1)
-    } else {
-      rng <- m[i]:length(md)
-    }
+      if (length(m) > i) {
+        rng <- m[i]:(m[i + 1] - 1)
+      } else {
+        rng <- m[i]:length(md)
+      }
 
-    ft <- trimws(paste(md[rng], collapse = "\n"))
+      ft <- trimws(paste(md[rng], collapse = "\n"))
+    })
+
+    ft <- paste(ft, collapse = "\n\n")
 
     text <- paste0(text, "\n\n", ft)
   }

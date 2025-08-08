@@ -52,7 +52,7 @@ mhsurv <- mhsurv |>
 ```{r}
 # Remove un-binned numeric variables
 mhsurv <- mhsurv |>
-  select(!matches("^q(8|11)|_num$|_fac$|hrs_in_bed|min_to_sleep"))
+  select(!matches("^q(8|11)|_num$|_fac$|hrs_in_bed|slp_lat"))
 ```
 
 ```{r}

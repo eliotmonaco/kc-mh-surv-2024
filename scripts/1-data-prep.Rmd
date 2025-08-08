@@ -625,7 +625,7 @@ mhsurv <- mhsurv |>
 
 ## Q15: Social media use
 
-Assign range values.
+Factorize and bin.
 
 ```{r}
 mhsurv <- mhsurv |>
@@ -724,32 +724,6 @@ mhsurv <- mhsurv |>
   mutate(hse = if_else(hse_pct > 100, NA, hse_scored))
 ```
 
-## Q17: Time to fall asleep
-
-Assign range values.
-
-```{r}
-mhsurv <- mhsurv |>
-  mutate(
-    min_to_sleep_fac = factor(q17, levels = minmax_seq(q17)),
-    min_to_sleep_bin = case_when(
-      q17             <  5  ~ 1,
-      q17 >=  5 & q17 < 10  ~ 2,
-      q17 >= 10 & q17 < 15  ~ 3,
-      q17 >= 15 & q17 < 20  ~ 4,
-      q17 >= 20 & q17 < 25  ~ 5,
-      q17 >= 25 & q17 < 30  ~ 6,
-      q17 >= 30 & q17 < 45  ~ 7,
-      q17 >= 45 & q17 < 60  ~ 8,
-      q17 >= 60 & q17 < 90  ~ 9,
-      q17 >= 90 & q17 < 120 ~ 10,
-      q17 >= 120            ~ 11,
-      .default = NA
-    ),
-    .after = q17
-  )
-```
-
 ## Q19: Hours slept
 
 ```{r}
@@ -771,7 +745,7 @@ mhsurv <- mhsurv |>
     si_num = si_comp,
     sm_add_num = sm_comp,
     sm_use_num = q15,
-    min_to_sleep_num = q17,
+    slp_lat = q17,
     hrs_slept_num = q19
   )
 ```

@@ -20,10 +20,8 @@ library(tidyverse)
 library(setmeup)
 ```
 
-```{r}
-source("fn.R")
-source("fn3.R")
-source("fn4.R")
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
 ```
 
 ```{r}
@@ -61,7 +59,7 @@ order <- c(
   "q4_1", "q4_2", "q4_3", "q4_4", "q5", "q6", "q7", "q8a",
   "q9", "q10", "q11", "q12",
   "si_bin", "si_bin_age", "sm_add_bin", "sm_use_fac", "sm_use_bin_age",
-  "hse", "hse_age", "hrs_slept_fac", "min_to_sleep_bin"
+  "hse", "hse_age", "hrs_slept_fac", "slp_lat"
 )
 
 fig <- fig[order]

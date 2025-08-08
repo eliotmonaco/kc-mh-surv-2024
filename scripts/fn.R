@@ -174,13 +174,11 @@ mh_barplot <- function(
       ggplot2::position_stack(reverse = rev)
     } else if (x == "dodge") {
       ggplot2::position_dodge()
-      # ggplot2::position_dodge2(reverse = rev)
     }
   }
 
   plot <- plot +
     ggplot2::geom_bar(
-      # position = bar_position,
       stat = "identity",
       position = pos(bar_position, bar_reverse),
       ...

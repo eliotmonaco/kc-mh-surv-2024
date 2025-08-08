@@ -1,0 +1,130 @@
+---
+title: "Correlations"
+output: html_notebook
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.width = 10,
+  fig.height = 5
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(patchwork)
+library(setmeup)
+```
+
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+```
+
+# Correlations
+
+## Correlation matrix
+
+<!-- ```{r} -->
+<!-- df <- mhsurv |> -->
+<!--   select(q4_1:last_col()) |> -->
+<!--   select(-starts_with("q11_"), -ends_with("bin")) |> -->
+<!--   mutate(across(everything(), as.numeric)) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- cormat <- rstatix::cor_mat(df) -->
+<!-- ``` -->
+
+## SM use vs SM addiction
+
+```{r}
+cor1 <- cor_tests(mhsurv, "sm_use_num", "sm_add_num")
+```
+
+```{r}
+print(cor1)
+```
+
+## SM use vs hours slept
+
+```{r}
+cor2 <- cor_tests(mhsurv, "sm_use_num", "hrs_slept_num")
+```
+
+```{r}
+print(cor2)
+```
+
+## SM use vs time to fall asleep
+
+```{r}
+cor3 <- cor_tests(mhsurv, "sm_use_num", "slp_lat")
+```
+
+```{r}
+print(cor3)
+```
+
+## SM addiction vs time to fall asleep
+
+```{r}
+cor3 <- cor_tests(mhsurv, "sm_add_num", "slp_lat")
+```
+
+```{r}
+print(cor3)
+```
+
+## Reported vs calculated time to fall asleep
+
+```{r}
+mhsurv <- mhsurv |>
+  mutate(
+    slp_lat_calc = (hrs_in_bed - hrs_slept_num) * 60,
+    slp_lat_diff = slp_lat - slp_lat_calc
+  )
+```
+
+```{r}
+df <- mhsurv |>
+  summarize(
+    "Non-NA MTS diff" = sum(!is.na(slp_lat_diff)),
+    "Unequal MTS" = sum(slp_lat_diff != 0, na.rm = TRUE),
+    "MTS diff >= 5" = sum(slp_lat_diff >= 5, na.rm = TRUE),
+    "MTS diff >= 15" = sum(slp_lat_diff >= 15, na.rm = TRUE),
+    "MTS diff >= 30" = sum(slp_lat_diff >= 30, na.rm = TRUE)
+  )
+
+rownames(df) <- "Responses (n)"
+
+t(df)
+```
+
+# Descriptive stats
+
+## Sleep latency
+
+```{r}
+mhsurv |>
+  summarize(
+    range = paste(range(slp_lat, na.rm = TRUE), collapse = " to "),
+    mean = round_ties_away(mean(slp_lat, na.rm = TRUE), 1),
+    median = median(slp_lat, na.rm = TRUE),
+    mode = mhsurv |>
+      count(slp_lat) |>
+      arrange(desc(n)) |>
+      filter(n == max(n)) |>
+      pull(slp_lat) |>
+      paste(collapse = ", ")
+  ) |>
+  t()
+```
+
+
+
+
