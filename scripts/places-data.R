@@ -1,8 +1,6 @@
 library(httr2)
 
-
 # Measure: "Sleeping less than 7 hours among adults aged >=18 years"
-
 
 # Kansas City -------------------------------------------------------------
 
@@ -61,36 +59,19 @@ slpus <- read.csv(text = resp2) # convert text to dataframe
 
 # MO ----------------------------------------------------------------------
 
-endpoint <- "https://data.cdc.gov/resource/dttw-5yxu.csv"
+# Data obtained from https://www.cdc.gov/sleep/data-research/facts-stats/adults-sleep-facts-and-stats.html
 
-params <- paste(
-  "?locationabbr=MO",
-  "year=2023",
-  # "topic=Inadequate Sleep",
-  "$limit=100000",
-  sep = "&"
+slpmo <- read.csv("data/1-source/AdultState.csv")
+
+colnames(slpmo) <- setmeup::fix_colnames(colnames(slpmo))
+
+slpmo <- slpmo |>
+  filter(state == "Missouri")
+
+slpdur <- list(
+  kc = slpkc,
+  mo = slpmo,
+  us = slpus
 )
 
-url <- URLencode(paste0(endpoint, params))
-
-req <- request(url) |>
-  req_headers_redacted("X-App-Token" = keyring::key_get("cdc-app-token"))
-
-req_dry_run(req)
-
-resp <- req_perform(req, verbosity = 2) # perform request
-
-resp_status(resp) # get HTTP status code
-
-resp2 <- resp_body_string(resp) # convert body of response to text
-
-slpmo <- read.csv(text = resp2) # convert text to dataframe
-
-
-
-colnames(slpmo)
-
-slpmo |>
-  filter(if_any(everything(), ~ grepl("sleep", .x)))
-
-
+saveRDS(slpdur, "data/2-final/sleep_duration_stats.rds")

@@ -1,0 +1,22 @@
+color:
+  palette:
+    red: "#F04C43"
+    blue: "#318CCC"
+    black: "#121517"
+    white: "#F3F3F4"
+    lightblue: "#69BEEB"
+    darkblue: "#3A80BF"
+    lightgreen: "#8DBD3f"
+    darkgreen: "#273320"
+    purple: "#6955A4"
+
+
+logo:
+  medium: assets/Health_4c_Black_Horz.png
+
+
+
+
+
+
+

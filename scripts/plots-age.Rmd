@@ -8,9 +8,8 @@ library(tidyverse)
 library(setmeup)
 ```
 
-```{r}
-source("fn.R")
-source("fn2.R")
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
 ```
 
 ```{r}
@@ -32,12 +31,12 @@ names(mhsmry) <- vars
 mhfigs <- imap(mhsmry, \(df, x) {
   n <- ifelse(x == "hse", 0, 5)
 
-  ls <- df |>
+  p <- df |>
     rename(age = age2) |>
     plot_grouped_data(x, "age", n_repel = n, dir = "v")
 
   if (x == "hse") {
-    ls$plot <- ls$plot +
+    p <- p +
       coord_cartesian(ylim = c(90, 100)) +
       scale_y_continuous(
         expand = c(0, NA),
@@ -53,27 +52,50 @@ mhfigs <- imap(mhsmry, \(df, x) {
         color = "white",
         fontface = "bold"
       )
-    
-    ls$cap <- paste0(ls$cap, " Note the truncated y-axis scale.")
   }
 
-  ls
+  p
 })
 
-names(mhfigs) <- vars
+names(mhfigs) <- paste0(vars, "_age")
+
+mhcaps <- imap(mhsmry, \(df, x) {
+  cap <- cap_text(df, x)
+  
+  if (x == "hse") {
+    cap <- paste(cap, "Note the truncated y-axis scale.")
+  }
+  
+  cap
+})
+
+names(mhcaps) <- paste0(vars, "_age")
 ```
 
-```{r}
-for (i in 1:length(mhfigs)) {
-  print(
-    mhfigs[[i]]$plot |>
-      add_caption(mhfigs[[i]]$cap, size = 11)
-  )
-}
+```{r fig.width=7, fig.height=4.5}
+mhfigs$si_bin_age
+```
+
+```{r fig.width=7, fig.height=4.5}
+mhfigs$sm_use_bin_age
+```
+
+```{r fig.width=7, fig.height=4.5}
+mhfigs$hse_age
 ```
 
 # Save/export
 
+```{r include=FALSE}
+imap(mhfigs, \(x, i) {
+  i <- gsub("_", "-", i)
+  ggsave(
+    paste0("mh-report/img/", i, ".png"), x,
+    width = 7, height = 4.5, dpi = 100
+  )
+})
+```
+
 ```{r}
-saveRDS(mhfigs, "../data/2-final/figures_grouped_by_age.rds")
+saveRDS(mhcaps, "../data/2-final/figure_captions_questions_by_age.rds")
 ```

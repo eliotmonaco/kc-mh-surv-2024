@@ -1,0 +1,21 @@
+h2 {
+	border-bottom: 1px solid #acb1b5;
+}
+
+blockquote {
+	border-left: .25rem solid #cbced1;
+}
+
+/* div.quarto-figure {
+	margin-bottom: 3em;
+} */
+
+.quarto-title-banner {
+	background: #318CCC;
+	background-size: auto 100% !important;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+
+

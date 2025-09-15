@@ -1,7 +1,6 @@
 
-# Standalone report -------------------------------------------------------
+# Report draft ------------------------------------------------------------
 
-# Print questions in standalone report
 print_questions_to_report <- function(group) {
   x <- cb$viz$var[cb$viz$group == group]
   x <- names(fig)[names(fig) %in% x]
@@ -13,7 +12,14 @@ print_questions_to_report <- function(group) {
     nm <- paste0("fig-std-", q2)
     title <- cb$viz$title[cb$viz$var == q]
     d <- dims[[cb$viz$dims[cb$viz$var == q]]]
-    s <- paste0("fig$", q)
+    f2 <- paste0("fig$", q)
+    t <- paste0("tbl$", q)
+
+    if (q %in% names(tbl)) {
+      chunk2 <- sprintf("print(%s)", t)
+    } else {
+      chunk2 <- ""
+    }
 
     chunk <- sprintf(
       "```{r %s, fig.dim=%s}
@@ -21,8 +27,10 @@ print_questions_to_report <- function(group) {
         %s$plot |>
           add_caption(%s$cap)
       )
+
+      %s
       ```",
-      nm, d, s, s
+      nm, d, f2, f2, chunk2
     )
 
     if (!is.na(title)) {

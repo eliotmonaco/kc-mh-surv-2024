@@ -1,0 +1,395 @@
+---
+format:
+  html:
+    title-block-banner: img/fountain.svg
+    toc: true
+    toc-location: right
+    resource-path: 
+      - img/
+    fig-align: center
+    embed-resources: true
+    link-external-newwindow: true
+    other-links:
+      - text: "Community Health Assessment"
+        href: https://kcmo.gov/cha
+    css: style.css
+brand: _brand.yml
+execute:
+  echo: false
+---
+
+```{r include=FALSE}
+# Source functions
+lapply(list.files("..", pattern = "^fn", full.names = TRUE), source)
+
+# Source report text from Word doc
+md <- doc_to_md(
+  file1 = "../../data/1-source/report-text.docx",
+  file2 = "../../data/1-source/report-text.md"
+)
+
+# MHS codebook
+cb <- readRDS("../../data/2-final/mh_codebook.rds")
+
+# Captions for figures & tables
+caps1 <- readRDS("../../data/2-final/figure_captions_sample.rds")
+caps2 <- readRDS("../../data/2-final/figure_captions_questions.rds")
+caps3 <- readRDS("../../data/2-final/figure_caption_ccbhc.rds")
+caps4 <- readRDS("../../data/2-final/figure_captions_questions_by_age.rds")
+caps5 <- readRDS("../../data/2-final/figure_captions_sleep_tables.rds")
+caps <- c(caps1, caps2, caps3, caps4, caps5)
+```
+
+## Introduction
+
+```{r results='asis'}
+print_from_md_file(md, "intro", 3)
+```
+
+### Purpose
+
+```{r results='asis'}
+print_from_md_file(md, "purpose", 3)
+```
+
+### Methodology
+
+```{r results='asis'}
+print_from_md_file(md, "method", 3)
+```
+
+![`r caps$map_respondents`](map-respondents.png){#fig-map-resp}
+
+## Survey sample
+
+```{r results='asis'}
+print_from_md_file(md, "sample", 3)
+```
+
+![`r caps$tbl_dist`](tbl-dist.png){#tbl-dist width=300px}
+
+![`r caps$birth_sex`](demo-sex.png){#fig-sex}
+
+![`r caps$age`](demo-age.png){#fig-age}
+
+![`r caps$age_str`](demo-age-str.png){#fig-age-str}
+
+![`r caps$race_ethnicity`](demo-race-eth.png){#fig-race-eth}
+
+![`r caps$race_collapsed`](demo-race-col.png){#fig-race-col}
+
+![`r caps$hispanic_origin`](demo-hisp.png){#fig-hisp}
+
+## Survey results
+
+### Executive summary
+
+```{r results='asis'}
+print_from_md_file(md, "exec", 3)
+```
+
+### Personal mental health
+
+```{r results='asis'}
+print_from_md_file(md, "personal", 3)
+```
+
+<!-- Q4-1 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q4_1"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q4_1`](q4-1.png){#fig-q4-1}
+
+```{r results='asis'}
+print_from_md_file(md, "q4-1", 3)
+```
+
+<!-- Q4-2 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q4_2"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q4_2`](q4-2.png){#fig-q4-2}
+
+```{r results='asis'}
+print_from_md_file(md, "q4-2", 3)
+```
+
+<!-- Q4-3 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q4_3"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q4_3`](q4-3.png){#fig-q4-3}
+
+```{r results='asis'}
+print_from_md_file(md, "q4-3", 3)
+```
+
+<!-- Q4-4 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q4_4"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q4_4`](q4-4.png){#fig-q4-4}
+
+```{r results='asis'}
+print_from_md_file(md, "q4-4", 3)
+```
+
+<!-- Q5 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q5"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q5`](q5.png){#fig-q5}
+
+```{r results='asis'}
+print_from_md_file(md, "q5", 3)
+```
+
+<!-- Q6 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q6"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q6`](q6.png){#fig-q6}
+
+```{r results='asis'}
+print_from_md_file(md, "q6", 3)
+```
+
+<!-- Q7 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q7"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q7`](q7.png){#fig-q7}
+
+```{r results='asis'}
+print_from_md_file(md, "q7", 3)
+```
+
+<!-- Q8a -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q8a"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q8a`](q8a.png){#fig-q8a}
+
+```{r results='asis'}
+print_from_md_file(md, "q8a", 3)
+```
+
+### Mental health treatment
+
+```{r results='asis'}
+print_from_md_file(md, "treatment", 3)
+```
+
+<!-- Q9 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q9"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q9`](q9.png){#fig-q9}
+
+```{r results='asis'}
+print_from_md_file(md, "q9", 3)
+```
+
+<!-- Q10 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q10"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q10`](q10.png){#fig-q10}
+
+```{r results='asis'}
+print_from_md_file(md, "q10", 3)
+```
+
+<!-- Q11 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q11"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q11`](q11.png){#fig-q11}
+
+```{r results='asis'}
+print_from_md_file(md, "q11", 3)
+```
+
+<!-- Q12 -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "q12"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$q12`](q12.png){#fig-q12}
+
+```{r results='asis'}
+print_from_md_file(md, "q12", 3)
+```
+
+#### Certified Community Behavioral Health Clinics
+
+```{r results='asis'}
+print_from_md_file(md, "certified", 3)
+```
+
+![`r caps$map_ccbhc`](map-ccbhc.png){#fig-map-ccbhc}
+
+### Social isolation
+
+```{r results='asis'}
+print_from_md_file(md, "isolation", 3)
+```
+
+<!-- SI score -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "si_bin"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$si_bin`](si-bin.png){#fig-si1}
+
+```{r results='asis'}
+print_from_md_file(md, "si-bin", 3)
+```
+
+<!-- SI score by age -->
+
+![`r caps$si_bin_age`](si-bin-age.png){#fig-si2}
+
+```{r results='asis'}
+print_from_md_file(md, "si-bin-age", 3)
+```
+
+### Social media use
+
+```{r results='asis'}
+print_from_md_file(md, "media", 3)
+```
+
+<!-- SM addiction score -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "sm_add_bin"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$sm_add_bin`](sm-add-bin.png){#fig-sm1}
+
+```{r results='asis'}
+print_from_md_file(md, "sm-add-bin", 3)
+```
+
+<!-- SM use -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "sm_use_fac"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$sm_use_fac`](sm-use-fac.png){#fig-sm2}
+
+```{r results='asis'}
+print_from_md_file(md, "sm-use-fac", 3)
+```
+
+<!-- SM use by age -->
+
+![`r caps$sm_use_bin_age`](sm-use-bin-age.png){#fig-sm3}
+
+```{r results='asis'}
+print_from_md_file(md, "sm-use-bin-age", 3)
+```
+
+### Sleep quality
+
+```{r results='asis'}
+print_from_md_file(md, "quality", 3)
+```
+
+<!-- HSE score -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "hse"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$hse`](hse.png){#fig-hse1}
+
+```{r results='asis'}
+print_from_md_file(md, "hse", 3, TRUE)
+```
+
+<!-- HSE score by age -->
+
+![`r caps$hse_age`](hse-age.png){#fig-hse2}
+
+```{r results='asis'}
+print_from_md_file(md, "hse-age", 3)
+```
+
+<!-- Sleep duration -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "slp_dur_fac"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$slp_dur_fac`](slp-dur-fac.png){#fig-slp-dur}
+
+![`r caps$slp_dur_stats`](tbl-slp-dur-stats.png){#tbl-slp-dur width=500px}
+
+```{r results='asis'}
+print_from_md_file(md, "slp-dur-fac", 3)
+```
+
+<!-- Sleep latency -->
+
+```{r results='asis'}
+hdr <- cb$viz$header[cb$viz$var == "slp_lat"]
+print_md_text(paste("####", hdr))
+```
+
+![`r caps$slp_lat`](slp-lat.png){#fig-slp-lat}
+
+![`r caps$slp_lat_stats`](tbl-slp-lat.png){#tbl-slp-lat width=440px}
+
+```{r results='asis'}
+print_from_md_file(md, "slp-lat", 3)
+```
+
+## Conclusion
+
+```{r results='asis'}
+print_from_md_file(md, "conclusion", 3)
+```

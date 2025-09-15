@@ -8,7 +8,7 @@ output:
 ```{r setup}
 knitr::opts_chunk$set(
   echo = FALSE,
-  dev = "svg"
+  dev = "png"
 )
 
 knitr::opts_knit$set(
@@ -38,6 +38,9 @@ mhsmry <- summarize_dataset()
 ```{r}
 mhfigs <- imap(mhsmry, \(df, x) plot_data(df, x))
 names(mhfigs) <- names(mhsmry)
+
+mhcaps <- imap(mhsmry, \(df, x) cap_text(df, x))
+names(mhcaps) <- names(mhsmry)
 ```
 
 ```{r}
@@ -45,7 +48,7 @@ names(mhfigs) <- names(mhsmry)
 df <- mhsurv |>
   drop_na(slp_lat)
 
-p <- df |>
+mhfigs$slp_lat <- df |>
   ggplot(aes(x = slp_lat)) +
   geom_bar(fill = "#4f0a6b") +
   scale_x_binned(
@@ -59,39 +62,72 @@ p <- df |>
   labs(x = "\nSleep latency (minutes)", y = "Number of responses\n") +
   theme_classic() +
   theme(
+    # plot.margin = margin(t = 50, b = 50, r = 20, l = 20),
     plot.background = element_rect(fill = NA, color = NA),
     panel.background = element_rect(fill = NA, color = NA),
     axis.line = element_line(color = "#555555"),
     axis.ticks = element_line(color = "#555555"),
-    plot.margin = margin(t = 50, b = 50, r = 20, l = 20)
+    axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
-cap <- paste0("N = ", nrow(df), ".")
-
-mhfigs$slp_lat <- list(plot = p, cap = cap)
+mhcaps$slp_lat <- paste0("N = ", nrow(df), ".")
 ```
 
-```{r results='asis'}
-for (i in 1:length(mhfigs)) {
-  q <- gsub("_", "-", names(mhfigs)[i])
-  nm <- paste0("fig-", q)
-  h <- ifelse(grepl("q11", q), 10, 6)
-  
-  chunk <- sprintf(
-    "```{r %s, fig.height=%s, fig.width=10}
-    print(
-      mhfigs[[i]]$plot |>
-        add_caption(mhfigs[[i]]$cap, size = 15, width = 110)
-    )
-    ```",
-    nm, h
-  )
+```{r fig.width=6, fig.height=3.5}
+mhfigs$q4_1
+```
 
-  print_md_text(paste("##", toupper(q)))
-  print_md_chunk(chunk)
-}
+```{r fig.width=6, fig.height=3}
+mhfigs$q9
+```
+
+```{r fig.width=7, fig.height=6}
+mhfigs$q11
 ```
 
 ```{r}
-saveRDS(mhfigs, "../data/2-final/figures_ungrouped.rds")
+dims <- list(
+  vbar3 = list(w = 5, h = 3.5),
+  vbar4 = list(w = 5.5, h = 3.5),
+  vbar5 = list(w = 6, h = 3.5),
+  vbarwide = list(w = 8, h = 3.5),
+  vbarst = list(w = 7, h = 3.5),
+  q11 = list(w = 7, h = 6),
+  pie = list(w = 6, h = 3)
+)
+
+q <- list(
+  q4_1 = dims$vbar5,
+  q4_2 = dims$vbar5,
+  q4_3 = dims$vbar5,
+  q4_4 = dims$vbar5,
+  q5 = dims$vbar5,
+  q6 = dims$vbar5,
+  q7 = dims$vbar3,
+  q8a = dims$vbar3,
+  q9 = dims$pie,
+  q10 = dims$pie,
+  q11 = dims$q11,
+  q12 = dims$pie,
+  si_bin = dims$vbar3,
+  sm_add_bin = dims$vbar3,
+  sm_use_fac = dims$vbarwide,
+  hse = dims$vbar4,
+  slp_dur_fac = dims$vbarwide,
+  slp_lat = dims$vbarwide
+)
+```
+
+```{r include=FALSE}
+imap(q, \(x, i) {
+  i2 <- gsub("_", "-", i)
+  ggsave(
+    paste0("mh-report/img/", i2, ".png"), mhfigs[[i]],
+    width = x$w, height = x$h, dpi = 100
+  )
+})
+```
+
+```{r}
+saveRDS(mhcaps, "../data/2-final/figure_captions_questions.rds")
 ```

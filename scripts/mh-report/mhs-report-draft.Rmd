@@ -1,12 +1,16 @@
 ---
-title: "MH standalone report draft"
-output: html_document
+title: "Kansas City Health Department Mental Health Survey Report"
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
-```{r setup}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = FALSE,
-  dev = "svg"
+  fig.align = "center",
+  dev = "png"
 )
 
 knitr::opts_knit$set(
@@ -18,10 +22,11 @@ knitr::opts_knit$set(
 ```{r message=FALSE}
 library(tidyverse)
 library(setmeup)
+library(patchwork)
 ```
 
 ```{r include=FALSE}
-lapply(list.files(pattern = "^fn"), source)
+lapply(list.files("..", pattern = "^fn", full.names = TRUE), source)
 ```
 
 ```{r}
@@ -30,20 +35,23 @@ files <- c(
   "figures_ungrouped.rds",
   "figures_grouped_by_age.rds"
 )
-files <- paste0("../data/2-final/", files)
+files <- paste0("../../data/2-final/", files)
 ```
 
 ```{r}
 fig <- lapply(files, readRDS)
-mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
-ccbhc_map <- readRDS("../data/2-final/ccbhc_map.rds")
+tbl1 <- readRDS("../../data/2-final/table_districts.rds")
+tbl2 <- readRDS("../../data/2-final/tables_analyses.rds")
+mhsurv <- readRDS("../../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../../data/2-final/mh_codebook.rds")
+cbviz <- readxl::read_excel("../../data/1-source/cb-viz.xlsx", sheet = "web_rpt")
+ccbhc_map <- readRDS("../../data/2-final/ccbhc_map.rds")
 ```
 
 ```{r}
 md <- doc_to_md(
-  file1 = "../data/1-source/report-text.docx",
-  file2 = "../data/1-source/report-text.md"
+  file1 = "../../data/1-source/report-text.docx",
+  file2 = "../../data/1-source/report-text.md"
 )
 ```
 
@@ -55,11 +63,13 @@ fig <- unlist(fig, recursive = FALSE)
 
 order <- c(
   "sample_map",
-  "birth_sex", "age", "age_str", "race_ethnicity", "hispanic_origin",
+  "birth_sex", "age", "age_str",
+  "race_ethnicity", "race_collapsed", "hispanic_origin",
   "q4_1", "q4_2", "q4_3", "q4_4", "q5", "q6", "q7", "q8a",
   "q9", "q10", "q11", "q12",
-  "si_bin", "si_bin_age", "sm_add_bin", "sm_use_fac", "sm_use_bin_age",
-  "hse", "hse_age", "hrs_slept_fac", "slp_lat"
+  "si_bin", "si_bin_age",
+  "sm_add_bin", "sm_use_fac", "sm_use_bin_age",
+  "hse", "hse_age", "slp_dur_fac", "slp_lat"
 )
 
 fig <- fig[order]
@@ -70,6 +80,7 @@ fig <- fig[order]
 dims <- list(
   map1 = c(5, 7),
   hbar2 = "c(4, 3)",
+  hbar3 = "c(4, 3.5)",
   bar3 = "c(5, 4.5)",
   bar4 = "c(5.5, 4.5)",
   bar5 = "c(6, 4.5)",
@@ -92,12 +103,59 @@ print_from_md_file(md, "method", 1)
 ```
 
 ```{r fig.dim=dims$map1}
-fig$sample_map$plot
+fig$sample_map$plot |>
+  add_caption(fig$sample_map$cap)
 ```
 
 `r fig$sample_map$cap`
 
 # Survey sample
+
+```{r results='asis'}
+print_from_md_file(md, "sample", 3)
+```
+
+```{r}
+tbl1
+```
+
+```{r fig.width=10, fig.height=5}
+wrap_plots(
+  fig$birth_sex$plot |>
+    add_caption(fig$birth_sex$cap),
+  plot_spacer(),
+  fig$age$plot |>
+    add_caption(fig$age$cap),
+  nrow = 1,
+  widths = c(4, 1, 9)
+)
+```
+
+```{r fig.width=6}
+fig$age_str$plot |>
+  add_caption(fig$age_str$cap)
+```
+
+```{r fig.width=10, fig.height=5.5}
+wrap_plots(
+  wrap_elements(
+    fig$race_ethnicity$plot |>
+      add_caption(fig$race_ethnicity$cap)
+  ),
+  plot_spacer(),
+  wrap_elements(
+    fig$race_collapsed$plot |>
+      add_caption(fig$race_collapsed$cap, width = 50)
+  ),
+  nrow = 1,
+  widths = c(7, 1, 5)
+)
+```
+
+```{r fig.width=4, fig.height=5}
+fig$hispanic_origin$plot |>
+  add_caption(fig$hispanic_origin$cap)
+```
 
 ```{r results='asis'}
 x <- cb$viz$var[cb$viz$group == "gpfctr"]
@@ -187,7 +245,59 @@ print_questions_to_report("sm")
 print_from_md_file(md, "sleep quality", 3)
 ```
 
-```{r results='asis'}
-print_questions_to_report("slp")
+```{r}
+fig$hse$plot |>
+  add_caption(fig$hse$cap)
 ```
+
+```{r results='asis'}
+print_from_md_file(md, "hse", 3)
+```
+
+```{r}
+fig$hse_age$plot |>
+  add_caption(fig$hse_age$cap)
+```
+
+```{r results='asis'}
+print_from_md_file(md, "hse-age", 3)
+```
+
+```{r}
+fig$slp_dur_fac$plot |>
+  add_caption(fig$slp_dur_fac$cap)
+```
+
+```{r}
+tbl2$slp_dur_num
+```
+
+```{r results='asis'}
+print_from_md_file(md, "slp-dur", 3)
+```
+
+```{r}
+fig$slp_lat$plot |>
+  add_caption(fig$slp_lat$cap)
+```
+
+```{r}
+tbl2$slp_lat
+```
+
+```{r results='asis'}
+print_from_md_file(md, "slp-lat", 3)
+```
+
+<!-- ```{r results='asis'} -->
+<!-- print_questions_to_report("slp") -->
+<!-- ``` -->
+
+
+
+
+
+
+
+
 

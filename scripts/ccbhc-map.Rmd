@@ -77,7 +77,7 @@ map1
 ```{r}
 kcmap2 <- st_transform(sf_city_2024, crs = st_crs(3857))
 ext <- st_bbox(kcmap2)
-exp <- 5000
+exp <- 1000
 ext[1] <- ext[1] - exp
 ext[2] <- ext[2] - exp
 ext[3] <- ext[3] + exp
@@ -88,7 +88,8 @@ ccbhcs2 <- st_transform(
   crs = st_crs(3857)
 )
 
-pal <- mh_palette("blueorange", length(unique(ccbhcs2$org)))
+# pal <- mh_palette("blueorange", length(unique(ccbhcs2$org)))
+pal <- c("#003f5c", "#bc5090", "#ffa600", "#209914")
 
 map2 <- basemaps::basemap_ggplot(
     ext = ext,
@@ -124,12 +125,16 @@ map2
 ```
 
 ```{r}
-ccbhc_map <- list(
-  plot = map2,
-  cap = "CCBHC locations in Kansas City identified by KCHD as of July 2025."
+ggsave(
+  "mh-report/assets/map-ccbhc.png", map2,
+  height = 6, dpi = 100
 )
 ```
 
 ```{r}
-saveRDS(ccbhc_map, "../data/2-final/ccbhc_map.rds")
+cap <- list(map_ccbhc = "CCBHC locations in Kansas City (as of July 2025).")
+```
+
+```{r}
+saveRDS(cap, "../data/2-final/figure_caption_ccbhc.rds")
 ```

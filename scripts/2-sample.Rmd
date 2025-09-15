@@ -13,7 +13,7 @@ Summarize the demographic and geographic characteristics of the Mental Health Su
 
 ```{r setup}
 knitr::opts_chunk$set(
-  dev = "svg"
+  dev = "png"
 )
 
 knitr::opts_knit$set(
@@ -28,10 +28,11 @@ library(readxl)
 library(kcData)
 library(setmeup)
 library(sf)
+library(gt, exclude = "pct")
 ```
 
-```{r}
-source("fn.R")
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
 ```
 
 ```{r}
@@ -40,20 +41,16 @@ cb <- readRDS("../data/2-final/mh_codebook.rds")
 hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
 ```
 
-# Prep data
-
-# Analysis
+# Summarize
 
 The survey was completed by 648 residents. Citywide population estimates were taken from the 2023 5-Year American Community Survey conducted by the US Census Bureau.
 
 ```{r}
-mhsmry <- list()
-kcpop <- list()
+mhdemo <- list()
+mhgeo <- list()
 ```
 
-## Summarize
-
-### Birth sex
+## Birth sex
 
 Summarize the survey sample by sex.
 
@@ -65,19 +62,21 @@ df <- mhsurv |>
 Pull the ACS population estimates by sex for Kansas City.
 
 ```{r}
-kcpop$total <- acs5_city_2023$estimate[acs5_city_2023$variable == "B01001_001"]
+poptotal <- acs1_city_2023 |>
+  filter(variable == "B01001_001") |>
+  pull(estimate)
 
-kcpop$sex <- acs5_city_2023 |>
+popsex <- acs1_city_2023 |>
   filter(variable %in% c("B01001_002", "B01001_026")) |>
-  mutate(kc_total = kcpop$total)
+  mutate(kc_total = poptotal)
 ```
 
 Find the percentage of each sex category in KC sampled.
 
 ```{r}
-mhsmry$birth_sex <- df |>
+mhdemo$birth_sex <- df |>
   left_join(
-    kcpop$sex |>
+    popsex |>
       select(label, estimate, kc_total) |>
       mutate(label = str_remove_all(label, "Estimate|Total|[:punct:]")),
     by = c("birth_sex" = "label"),
@@ -86,10 +85,10 @@ mhsmry$birth_sex <- df |>
   select(-label) |>
   mutate(pct_kc = pct(estimate, kc_total, 5))
 
-mhsmry$birth_sex
+mhdemo$birth_sex
 ```
 
-### Age
+## Age
 
 Summarize the survey sample by age.
 
@@ -101,18 +100,20 @@ df <- mhsurv |>
 Pull the ACS population estimates by age for Kansas City.
 
 ```{r}
-kcpop$age <- acs5_city_2023 |>
+p <- paste0("(", paste(18:100, collapse = "|"), ").*years")
+
+popage <- acs1_city_2023 |>
   filter(
-    str_detect(label, paste0("(", paste(18:100, collapse = "|"), ").*years")),
+    str_detect(label, p),
     concept == "Sex by Age"
   ) |>
-  mutate(kc_total = kcpop$total)
+  mutate(kc_total = poptotal)
 ```
 
 Summarize ACS estimates by the same age categories in the survey sample.
 
 ```{r}
-kcpop$age <- kcpop$age |>
+popage <- popage |>
   select(label, estimate, kc_total) |>
   mutate(label = str_remove_all(label, "Estimate|Total|[:punct:]")) |>
   mutate(
@@ -123,47 +124,62 @@ kcpop$age <- kcpop$age |>
 
 rng <- list(18:34, 35:44, 45:54, 55:64, 65:74, 75:85)
 
-kcpop$age <- data.frame(
+popage <- data.frame(
   age = cb$age1$value,
   estimate = unlist(lapply(rng, \(x) {
-    kcpop$age |>
+    popage |>
       filter(str_detect(age_group, paste(x, collapse = "|"))) |>
       pull(estimate) |>
       sum()
   })),
-  kc_total = unique(kcpop$age$kc_total)
+  kc_total = unique(popage$kc_total)
 )
 ```
 
 Find the percentage of each age category in KC sampled.
 
 ```{r}
-mhsmry$age <- df |>
+mhdemo$age <- df |>
   rename(age = age1) |>
   left_join(
-    kcpop$age,
+    popage,
     by = "age"
   ) |>
   mutate(pct_kc = pct(estimate, kc_total, 5))
 
-mhsmry$age
+mhdemo$age
 ```
 
-### Race/ethnicity
+## Age structure
 
-#### All categories
+```{r}
+mhdemo$age_str <- mhsurv |>
+  summarize_results("age1", "birth_sex") |>
+  mutate(n = case_when(
+    birth_sex == "Female" ~ -n,
+    birth_sex == "Male" ~ n,
+    .default = NA
+  )) |>
+  rename(age = age1)
+
+mhdemo$age_str
+```
+
+## Race/ethnicity
+
+### All categories
 
 Summarize the survey sample by all race/ethnicity options.
 
 ```{r}
 # Get total number of responses
-t <- sum(!is.na(mhsurv$re_abbr))
+t <- sum(!is.na(mhsurv$re_full))
 
 # Split multiple selections into separate columns
 df <- mhsurv |>
-  select(re_abbr) |>
+  select(re_full) |>
   separate_wider_delim(
-    re_abbr,
+    re_full,
     delim = "; ",
     names_sep = "_",
     too_few = "align_start"
@@ -176,7 +192,8 @@ df <- df |>
   drop_na() |>
   count(race_ethnicity, .drop = FALSE) |>
   mutate(total = t) |>
-  mutate(pct = pct(n, total, 5))
+  mutate(pct = pct(n, total, 5)) |>
+  mutate(race_ethnicity = str_remove(race_ethnicity, "\\s\\(.*$"))
 ```
 
 ```{r}
@@ -185,10 +202,10 @@ lvl <- df |>
   arrange(pct) |>
   pull(race_ethnicity)
 
-mhsmry$race_ethnicity <- df |>
+mhdemo$race_ethnicity <- df |>
   mutate(race_ethnicity = factor(race_ethnicity, levels = lvl))
 
-mhsmry$race_ethnicity
+mhdemo$race_ethnicity
 ```
 
 Summarize the write-in responses for "Other".
@@ -198,7 +215,7 @@ mhsurv |>
   count(re_other, .drop = FALSE)
 ```
 
-#### Collapsed categories
+### Collapsed categories
 
 Summarize the survey sample by collapsed race/ethnicity categories.
 
@@ -220,55 +237,89 @@ df <- df |>
 Pull the ACS population estimates by race for Kansas City.
 
 ```{r}
-kcpop$race <- acs5_city_2023 |>
+poprace <- acs1_city_2023 |>
   filter(grepl("B01001[A-G]_001", variable)) |>
-  mutate(kc_total = kcpop$total)
+  mutate(kc_total = poptotal)
 ```
 
-Verify that the sum of estimates by race equals the total population estimate.
+Sum of estimates by race vs. total population estimate.
 
 ```{r}
-identical(
-  kcpop$race |>
-    pull(estimate) |>
-    sum(),
-  acs5_city_2023 |>
-    filter(grepl("B01001_001", variable)) |>
-    pull(estimate)
+data.frame(
+  measure = c("Sum of race groups", "Total population"),
+  estimate = c(
+    poprace |>
+      pull(estimate) |>
+      sum(),
+    poptotal
+  )
 )
 ```
 
 Summarize the ACS population estimates by the collapsed race/ethnicity categories.
 
 ```{r}
-kcpop$race_bwo <- data.frame(
+popbwo <- data.frame(
   race = c("Black", "White", "Other"),
   estimate = c(
-    kcpop$race$estimate[grepl("Black", kcpop$race$concept)],
-    kcpop$race$estimate[grepl("White", kcpop$race$concept)],
-    sum(kcpop$race$estimate[!grepl("Black|White", kcpop$race$concept)])
+    poprace$estimate[grepl("Black", poprace$concept)],
+    poprace$estimate[grepl("White", poprace$concept)],
+    sum(poprace$estimate[!grepl("Black|White", poprace$concept)])
   ),
-  kc_total = kcpop$total
+  kc_total = poptotal
 )
 ```
 
 Find the percentage of each collapsed race/ethnicity category in KC sampled.
 
 ```{r}
-mhsmry$race_collapsed <- df |>
+df <- df |>
   left_join(
-    kcpop$race_bwo,
+    popbwo,
     by = c("re_bwo" = "race"),
     keep = TRUE # keeps `re_bwo` as factor
   ) |>
   select(-race) |>
   mutate(pct_kc = pct(estimate, kc_total, 5)) |>
   rename(race_collapsed = re_bwo)
-
-mhsmry$race_collapsed
 ```
 
-### Hispanic origin
+```{r}
+# Convert to factor
+df <- df |>
+  mutate(race_collapsed = factor(
+    race_collapsed,
+    levels = c("Black", "White", "Other"))
+  )
+
+df
+```
+
+Prep for plotting.
+
+```{r}
+lvl <- c("Survey respondents", "Kansas City population")
+
+mhdemo$race_collapsed <- df |>
+  select(race_collapsed, pct, pct_kc) |>
+  pivot_longer(
+    cols = !race_collapsed,
+    names_to = "group",
+    values_to = "pct"
+  ) |>
+  mutate(group = case_when(
+    group == "pct" ~ lvl[1],
+    group == "pct_kc" ~ lvl[2]
+  )) |>
+  mutate(
+    group = factor(group, levels = lvl),
+    total = unique(df$total)
+  )
+
+mhdemo$race_collapsed
+```
+
+## Hispanic origin
 
 Summarize the survey sample by Hispanic origin.
 
@@ -277,44 +328,64 @@ df <- mhsurv |>
   summarize_results(var = "hispanic_origin", na_rm = TRUE)
 ```
 
-Pull the ACS population estimates by Hispanic origin for Kansas City.
+Pull the ACS population estimate by Hispanic origin for Kansas City and summarize.
 
 ```{r}
-kcpop$hispanic <- acs5_city_2023 |>
-  filter(grepl("B01001I?_001", variable)) |>
-  mutate(kc_total = kcpop$total)
-```
+pophisp <- acs1_city_2023 |>
+  filter(grepl("B01001I_001", variable)) |>
+  mutate(kc_total = poptotal) |>
+  pull(estimate)
 
-Summarize the ACS population estimates by Hispanic origin.
-
-```{r}
-kcpop$hispanic <- data.frame(
+pophisp <- data.frame(
   hispanic_origin_acs = c("Hispanic", "Not Hispanic"),
   estimate = c(
-    kcpop$hispanic$estimate[kcpop$hispanic$variable == "B01001I_001"],
-    kcpop$hispanic$estimate[kcpop$hispanic$variable == "B01001_001"] -
-      kcpop$hispanic$estimate[kcpop$hispanic$variable == "B01001I_001"]
+    pophisp,
+    poptotal - pophisp
   ),
-  kc_total = kcpop$total
+  kc_total = poptotal
 )
 ```
 
 Find the percentage of each Hispanic origin category in KC sampled.
 
 ```{r}
-mhsmry$hispanic_origin <- df |>
+df <- df |>
   left_join(
-    kcpop$hispanic,
+    pophisp,
     by = c("hispanic_origin" = "hispanic_origin_acs"),
     keep = TRUE # preserve join var as factor
   ) |>
   select(-hispanic_origin_acs) |>
   mutate(pct_kc = pct(estimate, kc_total, 5))
 
-mhsmry$hispanic_origin
+df
 ```
 
-### HOI regions
+Prep for plotting.
+
+```{r}
+lvl <- c("Survey respondents", "Kansas City population")
+
+mhdemo$hispanic_origin <- df |>
+  select(hispanic_origin, pct, pct_kc) |>
+  pivot_longer(
+    cols = !hispanic_origin,
+    names_to = "group",
+    values_to = "pct"
+  ) |>
+  mutate(group = case_when(
+    group == "pct" ~ lvl[1],
+    group == "pct_kc" ~ lvl[2]
+  )) |>
+  mutate(
+    group = factor(group, levels = lvl),
+    total = unique(df$total)
+  )
+
+mhdemo$hispanic_origin
+```
+
+## HOI regions
 
 Summarize survey sample by HOI region.
 
@@ -323,21 +394,21 @@ mhsurv |>
   count(hoi_region, .drop = FALSE)
 ```
 
-### ZCTA
+## ZCTA
 
 Pull the ACS population estimates by ZCTA for Kansas City.
 
 ```{r}
-kcpop$zcta <- acs5_zcta_2023 |>
+popzcta <- acs5_zcta_2023 |>
   filter(variable == "B01001_001") |>
   select(GEOID, estimate) |>
-  mutate(kc_total = kcpop$total)
+  mutate(kc_total = poptotal)
 ```
 
 Find the percentage of each ZCTA population in KC sampled.
 
 ```{r}
-mhsmry$zip <- mhsurv |>
+mhgeo$zip <- mhsurv |>
   summarize_results("zip", drop = FALSE, na_rm = FALSE) |>
   left_join(
     sf_zcta_2024 |>
@@ -347,169 +418,65 @@ mhsmry$zip <- mhsurv |>
     keep = TRUE # preserve join var as factor
   ) |>
   left_join(
-    kcpop$zcta,
+    popzcta,
     by = c("zip" = "GEOID"),
     keep = TRUE # preserve join var as factor
   ) |>
   select(-GEOID, -GEOID20) |>
   mutate(pct_kc = pct(estimate, kc_total, 5) * kc_area_pct / 100)
 
-mhsmry$zip
+mhgeo$zip
 ```
-
-### Age structure
 
 ```{r}
-mhsmry$age_str <- mhsurv |>
-  summarize_results("age1", "birth_sex") |>
-  mutate(n = case_when(
-    birth_sex == "Male" ~ -n,
-    birth_sex == "Female" ~ n,
-    .default = NA
-  )) |>
-  rename(age = age1)
-
-mhsmry$age_str
+mhgeo$zip |>
+  filter(kc_area_pct >= 20, estimate >= 1100)
 ```
 
-# Plot
+## Council district
+
+```{r}
+mhgeo$district <- mhsurv |>
+  group_by(district) |>
+  summarize(count = n())
+
+mhgeo$district
+```
+
+# Plot/viz
 
 ## Demographics
 
 ```{r}
-mhfigs <- lapply(names(mhsmry), \(x) {
-  df <- mhsmry[[x]]
-  plot <- cb$viz$plot[cb$viz$var == x]
-  cap <- cb$viz$caption[cb$viz$var == x]
-  sampsize <- unique(df$total)
-  if (is.na(cap)) {
-    cap <- paste0("N = ", sampsize, ".")
-  } else {
-    cap <- paste0(cap, " N = ", sampsize, ".")
-  }
-  yaxis <- cb$viz$axis[cb$viz$var == x]
+mhfigs <- imap(mhdemo, \(df, x) plot_sample(df, x))
+names(mhfigs) <- names(mhdemo)
 
-  if (plot == "bar") {
-    df <- df |>
-      mutate(label = paste0(round_ties_away(pct), "%")) |>
-      mutate(fcolor = "#F04C43") |>
-      mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
-      mutate(lpos = if_else(pct > max(pct) / 8, 1, 0)) |>
-      mutate(lcolor = if_else(lpos == 1, "white", "black")) |>
-      mutate(lnudge = max(pct) / 60) |>
-      mutate(lnudge = if_else(lpos == 1, -lnudge, lnudge))
-    
-    if ("pct_kc" %in% colnames(df)) df <- add_seg_vars(df, "pct_kc", x)
-
-    fig <- df |>
-      ggplot(aes(
-        x = pct,
-        y = .data[[x]],
-        label = label,
-        fill = fcolor
-      )) |>
-      mh_barplot(
-        legend = FALSE,
-        bar_reverse = TRUE,
-        base_font_size = 11
-      ) +
-      scale_fill_identity() +
-      geom_text(
-        aes(label = label, hjust = lpos),
-        nudge_x = df$lnudge,
-        size = 11,
-        size.unit = "pt",
-        color = df$lcolor,
-        fontface = "bold"
-      ) +
-      scale_x_continuous(expand = c(0, NA)) +
-      xlab("\nSample (%)") +
-      ylab(paste0(yaxis, "\n")) +
-      scale_y_discrete(labels = scales::label_wrap(16)) +
-      theme(plot.margin = margin(t = 50, b = 50, r = 20, l = 20))
-    
-    # if ("pct_kc" %in% colnames(df)) fig <- fig + pop_segment()
-  } else if (plot == "pyr") {
-    rngmax <- max(abs(df$n), na.rm = TRUE) + 5
-    rng <- c(-rngmax, rngmax)
-    pal <- c("#318CCC", "#F04C43")
-
-    df <- df |>
-      mutate(
-        label = abs(n),
-        fcolor = pal[as.numeric(df$birth_sex)],
-        lpos = if_else(birth_sex == "Female", 1, 0),
-        lnudge = if_else(birth_sex == "Female", -2, 2)
-      )
-    
-    fig <- df |>
-      ggplot(aes(x = n, y = age, label = label, fill = fcolor)) |>
-      mh_barplot(
-        legend_title = FALSE,
-        base_font_size = 11
-      ) +
-      scale_fill_identity(
-        name = "Birth sex",
-        labels = df$birth_sex,
-        breaks = df$fcolor,
-        guide = "legend"
-      ) +
-      geom_text(
-        aes(label = label, hjust = lpos),
-        nudge_x = df$lnudge,
-        size = 11,
-        size.unit = "pt",
-        # color = df$lcolor,
-        color = "white",
-        fontface = "bold"
-      ) +
-      xlab("\nSample (n)") +
-      ylab(paste0(yaxis, "\n")) +
-      scale_x_continuous(labels = abs, limits = rng) +
-      theme(
-        panel.grid.major.y = element_line(color = "grey92"),
-        legend.position = "bottom",
-        plot.margin = margin(t = 50, b = 50, r = 20, l = 20)
-      )
-  }
-
-  list(plot = fig, cap = cap)
-})
-
-names(mhfigs) <- names(mhsmry)
+mhcaps <- imap(mhdemo, \(df, x) cap_text(df, x))
+names(mhcaps) <- names(mhdemo)
 ```
 
-```{r results='asis', echo=FALSE}
-dims <- list(
-  age = list(h = 5, w = 6),
-  race_ethnicity = list(h = 6, w = 6),
-  zip = list(h = 20, w = 6),
-  age_str = list(h = 6, w = 8)
-)
+```{r fig.width=3, fig.height=3}
+mhfigs$birth_sex
+```
 
-for (i in 1:length(mhfigs)) {
-  x = names(mhfigs)[i]
-  nm <- cb$viz$title[cb$viz$var == x]
-  
-  if (x %in% names(dims)) {
-    h <- dims[[x]]$h; w <- dims[[x]]$w
-  } else {
-    h <- 4; w <- 6
-  }
-  
-  chunk <- sprintf(
-    "```{r %s, fig.height=%s, fig.width=%s}
-    print(
-      mhfigs[[i]]$plot |>
-        add_caption(mhfigs[[i]]$cap, size = 15, width = 110)
-    )
-    ```",
-    nm, h, w
-  )
+```{r fig.width=5, fig.height=3}
+mhfigs$age
+```
 
-  print_md_text(paste("###", nm))
-  print_md_chunk(chunk)
-}
+```{r fig.width=5, fig.height=3}
+mhfigs$age_str
+```
+
+```{r fig.width=5, fig.height=3}
+mhfigs$race_ethnicity
+```
+
+```{r fig.width=5, fig.height=3.5}
+mhfigs$race_collapsed
+```
+
+```{r fig.width=4, fig.height=3.5}
+mhfigs$hispanic_origin
 ```
 
 ## Maps
@@ -545,7 +512,7 @@ ggplot() +
 ```{r}
 geo_zcta <- st_transform(sf_zcta_2023, 4326)
 
-kcpop$zcta <- acs5_zcta_2023 |>
+popzcta <- acs5_zcta_2023 |>
   filter(grepl("^B01003", variable))
 ```
 
@@ -571,7 +538,7 @@ geo_zcta <- geo_zcta |>
     by = "GEOID20"
   ) |>
   left_join(
-    kcpop$zcta[, c("GEOID", "estimate")],
+    popzcta[, c("GEOID", "estimate")],
     by = c("GEOID20" = "GEOID")
   ) |>
   rename(n_sampled = n)
@@ -596,14 +563,14 @@ ggplot(geo_zcta) +
   )
 ```
 
-### Sample points
+### Respondent locations
 
 Map of survey sample with OSM base layer and city boundary.
 
 ```{r}
 geo_kc <- st_transform(sf_city_2024, crs = st_crs(3857))
 ext <- st_bbox(geo_kc)
-exp <- 5000
+exp <- 1000
 ext[1] <- ext[1] - exp
 ext[2] <- ext[2] - exp
 ext[3] <- ext[3] + exp
@@ -620,7 +587,7 @@ pts <- st_transform(
 ```
 
 ```{r fig.width=4, fig.height=6}
-mhfigs$sample_map$plot <- ggplot(data = geo_kc) +
+mhfigs$map_respondents <- ggplot(data = geo_kc) +
   basemaps::basemap_gglayer(
     ext = ext,
     map_service = "osm",
@@ -647,17 +614,73 @@ mhfigs$sample_map$plot <- ggplot(data = geo_kc) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_void()
 
-mhfigs$sample_map$cap <- paste0(
+mhcaps$map_respondents <- paste0(
   "Approximate locations of Mental Health Survey respondents. N = 648."
 )
 
-mhfigs$sample_map$plot
+mhfigs$map_respondents
+```
+
+## Tables
+
+```{r}
+tbl_dist <- mhgeo$district |>
+  gt() |>
+  cols_label(
+    district = "Council district",
+    count = "Number of respondents"
+  )
+
+mhcaps$tbl_dist <- "Survey respondents by council district"
+
+tbl_dist
 ```
 
 # Save
 
 ```{r}
-mhfigs_save <- mhfigs[!grepl("zip", names(mhfigs))]
+dir.create("mh-report/img", showWarnings = FALSE)
+```
 
-saveRDS(mhfigs_save, "../data/2-final/figures_sample.rds")
+```{r}
+ggsave(
+  "mh-report/img/map-respondents.png", mhfigs$map_respondents,
+  height = 6, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-sex.png", mhfigs$birth_sex,
+  width = 3, height = 3, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-age.png", mhfigs$age,
+  width = 5, height = 3, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-age-str.png", mhfigs$age_str,
+  width = 6, height = 3.5, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-race-eth.png", mhfigs$race_ethnicity,
+  width = 6, height = 4, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-race-col.png", mhfigs$race_collapsed,
+  width = 6, height = 4, dpi = 100
+)
+
+ggsave(
+  "mh-report/img/demo-hisp.png", mhfigs$hispanic_origin,
+  width = 4.5, height = 4, dpi = 100
+)
+
+gtsave(tbl_dist, "mh-report/img/tbl-dist.png")
+```
+
+```{r}
+saveRDS(mhcaps, "../data/2-final/figure_captions_sample.rds")
 ```

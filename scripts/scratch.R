@@ -130,8 +130,6 @@ ELC_word <- function(file){
 
 
 
-acs5_2024 <- get_kc_pop("acs1", "place", 2024)
-
 
 
 

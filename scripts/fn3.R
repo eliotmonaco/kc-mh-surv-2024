@@ -26,7 +26,7 @@ doc_to_md <- function(file1, file2) {
 #      next heading of any level
 # - 3: paragraph text only, including anything between the matched heading and
 #      the next heading of any level
-print_from_md_file <- function(md, head, type) {
+print_from_md_file <- function(md, head, type, silent = FALSE) {
   # Find the index of the heading containing `head`
   i <- which(grepl(paste0("(?i)^#.*(?=", head, ")"), md, perl = TRUE))
 
@@ -34,10 +34,12 @@ print_from_md_file <- function(md, head, type) {
     i <- which(grepl(paste0("(?i)^#+\\s", head, "$"), md, perl = TRUE))
 
     if (length(i) == 1) {
-      message(paste0(
-        "More than one heading matched the text in `head`. ",
-        "An exact match was found and used."
-      ))
+      if (!silent) {
+        message(paste0(
+          "More than one heading matched the text in `head`. ",
+          "An exact match was found and used."
+        ))
+      }
     } else {
       stop(paste0(
         "More than one heading matched the text in `head`, ",

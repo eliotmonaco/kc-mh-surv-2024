@@ -13,8 +13,10 @@ knitr::opts_chunk$set(
 
 ```{r message=FALSE}
 library(tidyverse)
-library(patchwork)
 library(setmeup)
+library(kcData)
+library(patchwork)
+library(gt, exclude = "pct")
 ```
 
 ```{r include=FALSE}
@@ -23,6 +25,142 @@ lapply(list.files(pattern = "^fn"), source)
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+slpdur <- readRDS("../data/2-final/sleep_duration_stats.rds")
+pop <- readRDS("../data/2-final/kc_population_acs1_2023.rds")
+```
+
+# Descriptive stats
+
+```{r}
+tbl <- list()
+```
+
+## Sleep duration
+
+For each age category in the survey sample, find the proportion of the corresponding age category in the KC population, limited to the age range represented in the survey sample.
+
+```{r}
+popage <- pop$age |>
+  mutate(proportion = estimate / sum(pop$age$estimate))
+```
+
+Crude prevalence of inadequate sleep duration prevalence (< 7 hours).
+
+```{r}
+mhsurv |>
+  drop_na(slp_dur_num) |>
+  summarize(pct = pct(sum(slp_dur_num < 7), n())) |>
+  pull(pct)
+```
+
+Age-adjusted prevalence.
+
+```{r}
+df <- mhsurv |>
+  rename(age = age1) |>
+  drop_na(slp_dur_num, age) |>
+  group_by(age) |>
+  summarize(pct = pct(sum(slp_dur_num < 7), n(), 5)) |>
+  left_join(
+    popage |>
+      select(age, proportion),
+    by = "age"
+  ) |>
+  mutate(age_adj_rate = pct * proportion)
+
+df
+```
+
+```{r}
+slpdur$surv <- sum(df$age_adj_rate)
+
+slpdur$surv
+```
+
+Create a table with inadequate sleep duration for the survey, as well as the city, state, and US populations (sourced from PLACES). Age-adjusted prevalence is reported from the PLACES data.
+
+```{r}
+df <- data.frame(
+  population = c(
+    "Kansas City (Mental Health Survey)",
+    "Kansas City (CDC PLACES)",
+    "Missouri (CDC BRFSS)",
+    "United States (CDC PLACES)"
+  ),
+  dur7lt = c(
+    slpdur$surv,
+    slpdur$kc |>
+      filter(grepl("Age-adjust", data_value_type)) |>
+      pull(data_value),
+    slpdur$mo |>
+      pull(age_adjusted_prevalence),
+    slpdur$us |>
+      filter(grepl("Age-adjust", data_value_type)) |>
+      pull(data_value)
+  )
+)
+
+df <- df |>
+  mutate(dur7gt = 100 - dur7lt) |>
+  mutate(across(starts_with("slp"), ~ round_ties_away(.x, 0)))
+
+df
+```
+
+```{r}
+tbl$slp_dur_stats <- gt(df) |>
+  fmt_percent(starts_with("dur"), decimals = 0, scale_values = FALSE) |>
+  cols_label(
+    population = "Population",
+    dur7lt = md("Under 7 hours"),
+    dur7gt = md("7 hours or more")
+  )
+
+tbl$slp_dur_stats
+```
+
+## Sleep latency
+
+Descriptive statistics for sleep latency.
+
+```{r}
+df <- mhsurv |>
+  summarize(
+    min = min(slp_lat, na.rm = TRUE),
+    max = max(slp_lat, na.rm = TRUE),
+    mean = round_ties_away(mean(slp_lat, na.rm = TRUE), 1),
+    median = median(slp_lat, na.rm = TRUE),
+    mode = mhsurv |>
+      count(slp_lat) |>
+      arrange(desc(n)) |>
+      filter(n == max(n)) |>
+      pull(slp_lat) |>
+      paste(collapse = ", ")
+  ) |>
+  ungroup()
+
+df
+```
+
+```{r}
+# df$msr <- c(
+#   "Range of responses",
+#   "Average of all responses (mean)",
+#   "Center-most response (median)",
+#   "Most common response (mode)"
+# )
+
+tbl$slp_lat <- df |>
+  gt() |>
+  cols_label(
+    min = "Min.",
+    max = "Max.",
+    mean = md("Mean<br>(average)"),
+    median = md("Median<br>(middle value)"),
+    mode = md("Mode<br>(most frequent value)")
+  )
+
+tbl$slp_lat
 ```
 
 # Correlations
@@ -50,10 +188,10 @@ cor1 <- cor_tests(mhsurv, "sm_use_num", "sm_add_num")
 print(cor1)
 ```
 
-## SM use vs hours slept
+## SM use vs sleep duration
 
 ```{r}
-cor2 <- cor_tests(mhsurv, "sm_use_num", "hrs_slept_num")
+cor2 <- cor_tests(mhsurv, "sm_use_num", "slp_dur_num")
 ```
 
 ```{r}
@@ -85,7 +223,7 @@ print(cor3)
 ```{r}
 mhsurv <- mhsurv |>
   mutate(
-    slp_lat_calc = (hrs_in_bed - hrs_slept_num) * 60,
+    slp_lat_calc = (hrs_in_bed - slp_dur_num) * 60,
     slp_lat_diff = slp_lat - slp_lat_calc
   )
 ```
@@ -105,26 +243,21 @@ rownames(df) <- "Responses (n)"
 t(df)
 ```
 
-# Descriptive stats
-
-## Sleep latency
+# Save/export
 
 ```{r}
-mhsurv |>
-  summarize(
-    range = paste(range(slp_lat, na.rm = TRUE), collapse = " to "),
-    mean = round_ties_away(mean(slp_lat, na.rm = TRUE), 1),
-    median = median(slp_lat, na.rm = TRUE),
-    mode = mhsurv |>
-      count(slp_lat) |>
-      arrange(desc(n)) |>
-      filter(n == max(n)) |>
-      pull(slp_lat) |>
-      paste(collapse = ", ")
-  ) |>
-  t()
+gtsave(tbl$slp_lat, "mh-report/img/tbl-slp-lat.png")
+gtsave(tbl$slp_dur_stats, "mh-report/img/tbl-slp-dur-stats.png")
 ```
 
+```{r}
+caps <- list(
+  slp_lat_stats = "Sleep latency descriptive statistics",
+  slp_dur_stats = "Age-adjusted sleep duration in adults"
+)
+```
 
-
+```{r}
+saveRDS(caps, "../data/2-final/figure_captions_sleep_tables.rds")
+```
 
