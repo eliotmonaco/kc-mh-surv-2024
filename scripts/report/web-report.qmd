@@ -29,7 +29,7 @@ md <- doc_to_md(
 )
 
 # MHS codebook
-cb <- readRDS("../../data/2-final/mh_codebook.rds")
+cb <- readRDS("../../data/2-final/mhs_codebook.rds")
 
 # Captions for figures & tables
 caps1 <- readRDS("../../data/2-final/figure_captions_sample.rds")
@@ -280,7 +280,7 @@ print_md_text(paste("####", hdr))
 ![`r caps$si_bin`](si-bin.png){#fig-si1}
 
 ```{r results='asis'}
-print_from_md_file(md, "si-bin", 3)
+print_from_md_file(md, "si-bin", 3, silent = TRUE)
 ```
 
 <!-- SI score by age -->
@@ -347,7 +347,7 @@ print_md_text(paste("####", hdr))
 ![`r caps$hse`](hse.png){#fig-hse1}
 
 ```{r results='asis'}
-print_from_md_file(md, "hse", 3, TRUE)
+print_from_md_file(md, "hse", 3, silent = TRUE)
 ```
 
 <!-- HSE score by age -->

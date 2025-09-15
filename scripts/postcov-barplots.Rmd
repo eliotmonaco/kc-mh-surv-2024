@@ -30,7 +30,7 @@ source("fn2.R")
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ```
 
 ```{r}
@@ -78,7 +78,7 @@ mhsmry <- lapply(vars, summarize_dataset)
 ```
 
 ```{r}
-mhfigs <- lapply(mhsmry, \(x) {
+figs <- lapply(mhsmry, \(x) {
   imap(x, \(df, i) {
     var <- colnames(df)[grepl("postcov", colnames(df))]
     df |>
@@ -90,7 +90,7 @@ mhfigs <- lapply(mhsmry, \(x) {
 
 ```{r}
 # Join plots for each question
-pw <- pmap(mhfigs, \(x, y, z) {
+pw <- pmap(figs, \(x, y, z) {
   pw <- wrap_plots(
     x$plot, y$plot, z$plot,
     ncol = 1, heights = c(2, 3, 5),

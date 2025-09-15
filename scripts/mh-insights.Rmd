@@ -26,7 +26,7 @@ source("fn.R")
 mhfigs1 <- readRDS("../data/2-final/mh_figures_basic.rds")
 mhfigs2 <- readRDS("../data/2-final/mh_figures_age.rds")
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
 ```
 

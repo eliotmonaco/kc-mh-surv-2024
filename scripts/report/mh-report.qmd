@@ -27,7 +27,7 @@ mh <- readRDS("../../data/2-final/mh_report_data_&_plots.rds")
 
 ```{r}
 # Assemble figure captions
-mhcaps <- mh$caps |>
+caps <- mh$caps |>
   mutate(sample_size = paste0("N = ", sample_size, ".")) |>
   tidyr::unite(col = cap, caption, sample_size, sep = " ")
 ```
@@ -184,7 +184,7 @@ lapply(q, \(x) {
   #rectgrey[
     #figure(
       image("figs/q4-1.png"),
-      caption: [`r mhcaps$cap[mhcaps$number == "4_1"]`]
+      caption: [`r caps$cap[caps$number == "4_1"]`]
     )
   ]
   
@@ -195,7 +195,7 @@ lapply(q, \(x) {
   #rectwhite[
     #figure(
       image("figs/q4-2.png"),
-      caption: [`r mhcaps$cap[mhcaps$number == "4_2"]`]
+      caption: [`r caps$cap[caps$number == "4_2"]`]
     )
   ]
 ]

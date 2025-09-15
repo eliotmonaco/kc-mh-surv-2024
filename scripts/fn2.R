@@ -1,7 +1,7 @@
 
 # Meta-summary and plotting -----------------------------------------------
 
-lab_wrap <- function(x, w) {
+label_wrap <- function(x, w) {
   str_wrap(x, width = w, whitespace_only = FALSE)
 }
 
@@ -76,7 +76,7 @@ plot_sample <- function(df, var) {
   if (grepl("bar", plot)) {
     if (plot == "vbargp") {
       pal <- c("#F04C43", "#666666")
-      pal <- pal[as.numeric(df$group)]
+      pal <- pal[as.numeric(df$pop)]
     } else {
       pal <- "#F04C43"
     }
@@ -88,7 +88,6 @@ plot_sample <- function(df, var) {
     }
 
     df <- df |>
-      mutate(label = paste0(round_ties_away(pct), "%")) |>
       mutate(fcolor = pal) |>
       mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
       mutate(lpos = if_else(pct > max(pct) / 8, lnudge, -.25)) |>
@@ -98,7 +97,7 @@ plot_sample <- function(df, var) {
 
     df <- df |>
       mutate(
-        label = abs(n),
+        lbl = abs(n),
         fcolor = pal[as.numeric(df$birth_sex)],
         lpos = if_else(birth_sex == "Male", 1.2, -.2)
       )
@@ -106,47 +105,47 @@ plot_sample <- function(df, var) {
 
   if (plot == "hbar") {
     p <- df |>
-      ggplot(aes(x = pct, y = .data[[var]], label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = pct, y = .data[[var]], label = pct_fmt, fill = fcolor)) |>
+      mhs_barplot(
         legend = FALSE,
         bar_reverse = TRUE,
         base_font_size = 11
       ) +
       scale_fill_identity() +
       geom_text(
-        aes(label = label, hjust = lpos),
+        aes(label = pct_fmt, hjust = lpos),
         size = 11,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
       ) +
       scale_x_continuous(expand = c(0, NA)) +
-      scale_y_discrete(labels = ~ lab_wrap(.x, 24)) +
+      scale_y_discrete(labels = ~ label_wrap(.x, 24)) +
       xlab("\nPercentage of respondents") +
       ylab(paste0(axlab, "\n"))
   } else if (plot == "vbar") {
     p <- df |>
-      ggplot(aes(x = .data[[var]], y = pct, label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = .data[[var]], y = pct, label = pct_fmt, fill = fcolor)) |>
+      mhs_barplot(
         legend = FALSE,
         base_font_size = 11
       ) +
       scale_fill_identity() +
       geom_text(
-        aes(label = label, vjust = lpos),
+        aes(label = pct_fmt, vjust = lpos),
         size = 11,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
       ) +
-      scale_x_discrete(labels = ~ lab_wrap(.x, 16)) +
+      scale_x_discrete(labels = ~ label_wrap(.x, 16)) +
       scale_y_continuous(expand = c(0, NA)) +
       xlab(paste0("\n", axlab)) +
       ylab("Percentage of respondents\n")
   } else if (plot == "vbargp") {
     p <- df |>
-      ggplot(aes(x = .data[[var]], y = pct, label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = .data[[var]], y = pct, label = pct_fmt, fill = fcolor)) |>
+      mhs_barplot(
         bar_position = "dodge",
         legend_title = FALSE,
         base_font_size = 11
@@ -154,17 +153,17 @@ plot_sample <- function(df, var) {
       scale_fill_identity(
         name = "Population",
         guide = "legend",
-        label = levels(df$group)
+        label = levels(df$pop)
       ) +
       geom_text(
-        aes(label = label, vjust = lpos),
+        aes(label = pct_fmt, vjust = lpos),
         position = position_dodge(width = .9),
         size = 11,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
       ) +
-      scale_x_discrete(labels = ~ lab_wrap(.x, 16)) +
+      scale_x_discrete(labels = ~ label_wrap(.x, 16)) +
       scale_y_continuous(expand = c(0, NA)) +
       xlab(paste0("\n", axlab)) +
       ylab("Percentage of population\n") +
@@ -176,8 +175,8 @@ plot_sample <- function(df, var) {
     rng <- c(-rngmax, rngmax)
 
     p <- df |>
-      ggplot(aes(x = n, y = age, label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = n, y = age, label = lbl, fill = fcolor)) |>
+      mhs_barplot(
         width = .95,
         legend_title = FALSE,
         base_font_size = 11
@@ -189,7 +188,7 @@ plot_sample <- function(df, var) {
         guide = "legend"
       ) +
       geom_text(
-        aes(label = label, hjust = lpos),
+        aes(label = lbl, hjust = lpos),
         size = 11,
         size.unit = "pt",
         color = "white",
@@ -217,7 +216,7 @@ plot_data <- function(df, var, text_size = 11) {
   )
   msr <- cb$key$measure[cb$key$var2 == var]
   ncolors <- length(unique(df[[var]]))
-  pal <- mh_palette(pal, ncolors)
+  pal <- mhs_palette(pal, ncolors)
 
   if (plot == "vbar") {
     pal <- pal[seq_along(df[[var]])]
@@ -234,7 +233,6 @@ plot_data <- function(df, var, text_size = 11) {
   }
 
   df <- df |>
-    mutate(label = paste0(round_ties_away(pct), "%")) |>
     mutate(fcolor = pal) |>
     mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
     mutate(lpos = if_else(pct > max(pct) / 10, lnudge, -.25)) |>
@@ -242,45 +240,45 @@ plot_data <- function(df, var, text_size = 11) {
 
   if (plot == "vbar") {
     p <- df |>
-      ggplot(aes(x = .data[[var]], y = pct, label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = .data[[var]], y = pct, label = pct_fmt, fill = fcolor)) |>
+      mhs_barplot(
         legend = FALSE,
         base_font_size = text_size
       ) +
       scale_fill_identity(
-        name = lab_wrap(msr, 16),
+        name = label_wrap(msr, 16),
         labels = df[[var]],
         breaks = df$fcolor,
         guide = "legend"
       ) +
       geom_text(
-        aes(label = label, vjust = lpos),
+        aes(label = pct_fmt, vjust = lpos),
         size = text_size,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
       ) +
-      scale_x_discrete(labels = ~ lab_wrap(.x, 14)) +
+      scale_x_discrete(labels = ~ label_wrap(.x, 14)) +
       scale_y_continuous(expand = c(0, NA)) +
       xlab(paste0("\n", msr)) +
       ylab("Percentage of respondents\n")
   } else if (plot == "hbar") {
     p <- df |>
-      ggplot(aes(x = pct, y = reason, label = label, fill = fcolor)) |>
-      mh_barplot(
+      ggplot(aes(x = pct, y = reason, label = pct_fmt, fill = fcolor)) |>
+      mhs_barplot(
         legend = FALSE,
         base_font_size = text_size
       ) +
       scale_fill_identity() +
       geom_text(
-        aes(label = label, hjust = lpos),
+        aes(label = pct_fmt, hjust = lpos),
         size = text_size,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
       ) +
       scale_x_continuous(expand = c(0, NA)) +
-      scale_y_discrete(labels = ~ lab_wrap(.x, 32)) +
+      scale_y_discrete(labels = ~ label_wrap(.x, 32)) +
       xlab("\nPercentage of respondents") +
       ylab("Reason\n")
   } else if (plot == "pie") {
@@ -288,16 +286,16 @@ plot_data <- function(df, var, text_size = 11) {
       mutate(lcolor = contrast_color(fcolor))
 
     p <- df |>
-      ggplot(aes(x = "", y = pct, label = label, fill = fcolor)) |>
-      mh_pie_chart(base_font_size = text_size) +
+      ggplot(aes(x = "", y = pct, label = pct_fmt, fill = fcolor)) |>
+      mhs_pie_chart(base_font_size = text_size) +
       scale_fill_identity(
-        name = lab_wrap(msr, 16),
+        name = label_wrap(msr, 16),
         labels = df[[var]],
         breaks = df$fcolor,
         guide = "legend"
       ) +
       geom_text(
-        aes(label = label),
+        aes(label = pct_fmt),
         position = position_stack(vjust = .5),
         size = text_size,
         size.unit = "pt",
@@ -328,17 +326,17 @@ plot_grouped_data <- function(
   if (plot %in% c("vbar", "pie")) {
     msr <- cb$key$measure[cb$key$var2 == var]
     ncolors <- length(unique(df[[var]]))
-    pal <- mh_palette(pal, ncolors)
+    pal <- mhs_palette(pal, ncolors)
 
     df <- df |>
-      mutate(label = if_else( # normal labels
+      mutate(lbl = if_else( # normal labels
         pct > n_repel,
-        paste0(round_ties_away(pct), "%"),
+        pct_fmt,
         ""
       )) |>
-      mutate(label2 = if_else( # ggrepel labels
+      mutate(lbl2 = if_else( # ggrepel labels
         pct <= n_repel,
-        paste0(round_ties_away(pct), "%"),
+        pct_fmt,
         ""
       )) |>
       mutate(fcolor = pal[as.numeric(df[[var]])]) |>
@@ -349,26 +347,26 @@ plot_grouped_data <- function(
 
     if (dir == "h") {
       p <- df |>
-        ggplot(aes(x = pct, y = .data[[fctr]], label = label, fill = fcolor))
+        ggplot(aes(x = pct, y = .data[[fctr]], label = lbl, fill = fcolor))
     } else if (dir == "v") {
       p <- df |>
-        ggplot(aes(x = .data[[fctr]], y = pct, label = label, fill = fcolor))
+        ggplot(aes(x = .data[[fctr]], y = pct, label = lbl, fill = fcolor))
     }
 
     p <- p |>
-      mh_barplot(
+      mhs_barplot(
         base_font_size = text_size,
         bar_position = "stack",
         bar_reverse = TRUE
       ) +
       scale_fill_identity(
-        name = lab_wrap(msr, 16),
+        name = label_wrap(msr, 16),
         labels = df[[var]],
         breaks = df$fcolor,
         guide = "legend"
       ) +
       geom_text(
-        aes(label = label),
+        aes(label = lbl),
         position = position_stack(
           vjust = .5,
           reverse = TRUE
@@ -377,7 +375,7 @@ plot_grouped_data <- function(
         fontface = "bold"
       ) +
       ggrepel::geom_label_repel(
-        aes(label = label2),
+        aes(label = lbl2),
         position = position_stack(
           vjust = .5,
           reverse = TRUE
@@ -392,24 +390,24 @@ plot_grouped_data <- function(
     if (dir == "h") {
       p <- p +
         scale_x_continuous(expand = c(0, NA)) +
-        scale_y_discrete(labels = ~ lab_wrap(.x, 10)) +
+        scale_y_discrete(labels = ~ label_wrap(.x, 10)) +
         coord_cartesian(xlim = c(NA, 104)) +
         xlab(paste0("\nPercentage of respondents")) +
-        ylab(paste0(lab_wrap(axis, 24), "\n"))
+        ylab(paste0(label_wrap(axis, 24), "\n"))
     } else if (dir == "v") {
       p <- p +
         scale_y_continuous(expand = c(0, NA)) +
-        scale_x_discrete(labels = ~ lab_wrap(.x, 10)) +
+        scale_x_discrete(labels = ~ label_wrap(.x, 10)) +
         coord_cartesian(ylim = c(NA, 104)) +
-        xlab(paste0("\n", lab_wrap(axis, 24))) +
+        xlab(paste0("\n", label_wrap(axis, 24))) +
         ylab(paste0("Percentage of respondents\n"))
     }
   } else if (plot == "hbar") {
     ncolors <- length(unique(df[[fctr]]))
-    pal <- mh_palette("mellow", ncolors)
+    pal <- mhs_palette("mellow", ncolors)
 
     df <- df |>
-      mutate(label = paste0(round_ties_away(pct), "% ")) |>
+      # mutate(label = paste0(round_ties_away(pct), "% ")) |>
       mutate(fcolor = pal[as.numeric(df[[fctr]])]) |>
       mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
       mutate(lcolor = contrast_color(fcolor))
@@ -418,23 +416,23 @@ plot_grouped_data <- function(
       ggplot(aes(
         x = pct,
         y = reason,
-        label = label,
+        label = pct_fmt,
         fill = fcolor,
         group = .data[[fctr]]
       )) |>
-      mh_barplot(
+      mhs_barplot(
         bar_position = "dodge",
         base_font_size = text_size,
         legend_reverse = TRUE
       ) +
       scale_fill_identity(
-        name = lab_wrap(axis, 16),
+        name = label_wrap(axis, 16),
         labels = df[[fctr]],
         breaks = df$fcolor,
         guide = "legend"
       ) +
       geom_text(
-        aes(label = label, hjust = 1),
+        aes(label = pct_fmt, hjust = 1),
         position = position_dodge(width = .9),
         color = df$lcolor,
         fontface = "bold"
@@ -442,7 +440,7 @@ plot_grouped_data <- function(
       scale_x_continuous(expand = c(0, NA)) +
       xlab("\nPercentage of respondents") +
       ylab("Reason\n") +
-      scale_y_discrete(labels = ~ lab_wrap(.x, 32))
+      scale_y_discrete(labels = ~ label_wrap(.x, 32))
   }
 
   p
@@ -452,7 +450,7 @@ plot_hist <- function(df, x, y) {
   if (is.factor(df[[x]])) {
     nbins <- length(levels(df[[x]]))
     xbreaks <- 1:length(levels(df[[x]]))
-    xlabs <- lab_wrap(levels(df[[x]]), 8)
+    xlabs <- label_wrap(levels(df[[x]]), 8)
   } else if (is.numeric(df[[x]])) {
     nbins <- 10
     xbreaks <- waiver()
@@ -478,7 +476,7 @@ plot_hist <- function(df, x, y) {
     ) +
     scale_y_discrete(
       expand = c(0, NA),
-      labels = lab_wrap(levels(df[[y]]), 8)
+      labels = label_wrap(levels(df[[y]]), 8)
     ) +
     labs(x = "\nResponses", y = "Post-COVID-19 MH group\n") +
     theme_minimal(base_size = 16)
@@ -495,12 +493,12 @@ plot_box <- function(df, x, y) {
     geom_boxplot(color = "black") +
     geom_jitter(alpha = .4) +
     scale_x_continuous(
-      labels = lab_wrap(levels(df[[x]]), 8),
+      labels = label_wrap(levels(df[[x]]), 8),
       breaks = sort(unique(as.numeric(df[[x]])))
     ) +
     scale_y_discrete(
       expand = c(0, NA),
-      labels = lab_wrap(levels(df[[y]]), 8)
+      labels = label_wrap(levels(df[[y]]), 8)
     ) +
     labs(x = "\nResponses", y = "Post-COVID-19 MH group\n") +
     theme_minimal(base_size = 16) +
@@ -511,7 +509,7 @@ plot_histobox <- function(df, x, y) {
   if (is.factor(df[[x]])) {
     nbins <- length(levels(df[[x]]))
     xbreaks <- 1:length(levels(df[[x]]))
-    xlabs <- lab_wrap(levels(df[[x]]), 8)
+    xlabs <- label_wrap(levels(df[[x]]), 8)
   } else if (is.numeric(df[[x]])) {
     nbins <- 10
     xbreaks <- waiver()
@@ -554,7 +552,7 @@ plot_histobox <- function(df, x, y) {
 plot_density <- function(df, x, y) {
   # x-axis
   if (is.factor(df[[x]])) {
-    xlabs <- lab_wrap(levels(df[[x]]), 8)
+    xlabs <- label_wrap(levels(df[[x]]), 8)
     xpts <- waiver()
   } else if (is.numeric(df[[x]])) {
     xlabs <- waiver()
@@ -599,10 +597,9 @@ plot_density <- function(df, x, y) {
 }
 
 plot_points <- function(df, x, y) {
-  # browser()
   # x-axis
   if (is.factor(df[[x]])) {
-    xlabs <- lab_wrap(levels(df[[x]]), 8)
+    xlabs <- label_wrap(levels(df[[x]]), 8)
   } else if (is.numeric(df[[x]])) {
     xlabs <- waiver()
     # xpts <- 10

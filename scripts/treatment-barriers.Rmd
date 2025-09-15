@@ -16,7 +16,7 @@ source("fn.R")
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
 ```
 
@@ -41,7 +41,7 @@ mhsum$q09 <- mhsurv |>
 
 ```{r}
 mhplot$q09 <- mhsum$q09 |>
-  mh_pie_chart(
+  mhs_pie_chart(
     var = pct,
     label = label,
     fill = q9,
@@ -69,7 +69,7 @@ mhsum$q10 <- mhsurv |>
 
 ```{r}
 mhplot$q10 <- mhsum$q10 |>
-  mh_pie_chart(
+  mhs_pie_chart(
     var = pct,
     label = label,
     fill = q10,
@@ -123,7 +123,7 @@ mhsum$q11 <- mhsum$q11 |>
 
 ```{r}
 mhplot$q11 <- mhsum$q11 |>
-  mh_barplot(
+  mhs_barplot(
     x = pct,
     y = prompt,
     label = label,
@@ -184,7 +184,7 @@ mhsum$q12 <- mhsurv |>
 
 ```{r}
 mhplot$q12 <- mhsum$q12 |>
-  mh_pie_chart(
+  mhs_pie_chart(
     var = pct,
     label = label,
     fill = q12,

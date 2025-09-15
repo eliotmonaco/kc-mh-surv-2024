@@ -19,7 +19,7 @@ source("fn.R")
 ```{r}
 # cbq <- readRDS("../data/2-final/codebook_question_data.rds")
 # surv_demo <- readRDS("../data/2-final/survey_demographic_data.rds")
-# codebook <- readRDS("../data/2-final/mh_codebook.rds")
+# codebook <- readRDS("../data/2-final/mhs_codebook.rds")
 # mh_sum <- readRDS("../data/2-final/summarized_results.rds")
 # mh <- readRDS("../data/2-final/scored_results.rds")
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
@@ -115,7 +115,7 @@ q_covid <- mh_sum$q8$full |>
 ```{r}
 mhplots$q_covid2 <- q_covid |>
   mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
-  mh_barplot(
+  mhs_barplot(
     x = defn,
     y = pct,
     label = label,
@@ -148,7 +148,7 @@ n <- q_isolation |>
 ```{r}
 mhplots$q_isolation <- q_isolation |>
   mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
-  mh_barplot(
+  mhs_barplot(
     x = age_group,
     y = pct,
     label = label,
@@ -181,7 +181,7 @@ q_social_media$defn <- lvl
 ```{r}
 mhplots$q_social_media <- q_social_media |>
   mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
-  mh_barplot(
+  mhs_barplot(
     x = category,
     y = pct,
     label = label,
@@ -223,7 +223,7 @@ n <- q_treatment |>
 mhplots$q_treatment <- q_treatment |>
   filter(defn == "Yes") |>
   mutate(label = paste0(setmeup::round_ties_away(pct, 1), "%")) |>
-  mh_barplot(
+  mhs_barplot(
     x = gpvars,
     y = pct,
     label = label,

@@ -43,7 +43,7 @@ fig <- lapply(files, readRDS)
 tbl1 <- readRDS("../../data/2-final/table_districts.rds")
 tbl2 <- readRDS("../../data/2-final/tables_analyses.rds")
 mhsurv <- readRDS("../../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../../data/2-final/mh_codebook.rds")
+cb <- readRDS("../../data/2-final/mhs_codebook.rds")
 cbviz <- readxl::read_excel("../../data/1-source/cb-viz.xlsx", sheet = "web_rpt")
 ccbhc_map <- readRDS("../../data/2-final/ccbhc_map.rds")
 ```

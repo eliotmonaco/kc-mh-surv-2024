@@ -54,7 +54,7 @@ ggplot(kcmap) +
 ```
 
 ```{r}
-pal <- mh_palette("blueorange", length(unique(ccbhcs$org)))
+pal <- mhs_palette("blueorange", length(unique(ccbhcs$org)))
 
 map1 <- ggplot(data = kcmap) +
   geom_sf(linewidth = 1) +
@@ -88,7 +88,7 @@ ccbhcs2 <- st_transform(
   crs = st_crs(3857)
 )
 
-# pal <- mh_palette("blueorange", length(unique(ccbhcs2$org)))
+# pal <- mhs_palette("blueorange", length(unique(ccbhcs2$org)))
 pal <- c("#003f5c", "#bc5090", "#ffa600", "#209914")
 
 map2 <- basemaps::basemap_ggplot(
@@ -126,7 +126,7 @@ map2
 
 ```{r}
 ggsave(
-  "mh-report/assets/map-ccbhc.png", map2,
+  "report/assets/map-ccbhc.png", map2,
   height = 6, dpi = 100
 )
 ```

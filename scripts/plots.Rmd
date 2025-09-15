@@ -28,7 +28,7 @@ lapply(list.files(pattern = "^fn"), source)
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ```
 
 ```{r}
@@ -36,11 +36,11 @@ mhsmry <- summarize_dataset()
 ```
 
 ```{r}
-mhfigs <- imap(mhsmry, \(df, x) plot_data(df, x))
-names(mhfigs) <- names(mhsmry)
+figs <- imap(mhsmry, \(df, x) plot_data(df, x))
+names(figs) <- names(mhsmry)
 
-mhcaps <- imap(mhsmry, \(df, x) cap_text(df, x))
-names(mhcaps) <- names(mhsmry)
+caps <- imap(mhsmry, \(df, x) cap_text(df, x))
+names(caps) <- names(mhsmry)
 ```
 
 ```{r}
@@ -48,7 +48,7 @@ names(mhcaps) <- names(mhsmry)
 df <- mhsurv |>
   drop_na(slp_lat)
 
-mhfigs$slp_lat <- df |>
+figs$slp_lat <- df |>
   ggplot(aes(x = slp_lat)) +
   geom_bar(fill = "#4f0a6b") +
   scale_x_binned(
@@ -62,7 +62,6 @@ mhfigs$slp_lat <- df |>
   labs(x = "\nSleep latency (minutes)", y = "Number of responses\n") +
   theme_classic() +
   theme(
-    # plot.margin = margin(t = 50, b = 50, r = 20, l = 20),
     plot.background = element_rect(fill = NA, color = NA),
     panel.background = element_rect(fill = NA, color = NA),
     axis.line = element_line(color = "#555555"),
@@ -70,19 +69,23 @@ mhfigs$slp_lat <- df |>
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
-mhcaps$slp_lat <- paste0("N = ", nrow(df), ".")
+caps$slp_lat <- paste0("N = ", nrow(df), ".")
 ```
 
 ```{r fig.width=6, fig.height=3.5}
-mhfigs$q4_1
+figs$q4_1
 ```
 
 ```{r fig.width=6, fig.height=3}
-mhfigs$q9
+figs$q9
 ```
 
 ```{r fig.width=7, fig.height=6}
-mhfigs$q11
+figs$q11
+```
+
+```{r fig.width=8, fig.height=3.5}
+figs$slp_lat
 ```
 
 ```{r}
@@ -122,12 +125,12 @@ q <- list(
 imap(q, \(x, i) {
   i2 <- gsub("_", "-", i)
   ggsave(
-    paste0("mh-report/img/", i2, ".png"), mhfigs[[i]],
+    paste0("report/img/", i2, ".png"), figs[[i]],
     width = x$w, height = x$h, dpi = 100
   )
 })
 ```
 
 ```{r}
-saveRDS(mhcaps, "../data/2-final/figure_captions_questions.rds")
+saveRDS(caps, "../data/2-final/figure_captions_questions.rds")
 ```

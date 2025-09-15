@@ -37,7 +37,7 @@ lapply(list.files(pattern = "^fn"), source)
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
 ```
 
@@ -46,8 +46,8 @@ hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
 The survey was completed by 648 residents. Citywide population estimates were taken from the 2023 5-Year American Community Survey conducted by the US Census Bureau.
 
 ```{r}
-mhdemo <- list()
-mhgeo <- list()
+demo <- list()
+geo <- list()
 ```
 
 ## Birth sex
@@ -74,7 +74,7 @@ popsex <- acs1_city_2023 |>
 Find the percentage of each sex category in KC sampled.
 
 ```{r}
-mhdemo$birth_sex <- df |>
+demo$birth_sex <- df |>
   left_join(
     popsex |>
       select(label, estimate, kc_total) |>
@@ -83,9 +83,12 @@ mhdemo$birth_sex <- df |>
     keep = TRUE # keeps `birth_sex` as factor
   ) |>
   select(-label) |>
-  mutate(pct_kc = pct(estimate, kc_total, 5))
+  mutate(
+    pct_kc = pct(estimate, kc_total, 5),
+    pct_fmt_kc = pct(estimate, kc_total, format = TRUE)
+  )
 
-mhdemo$birth_sex
+demo$birth_sex
 ```
 
 ## Age
@@ -139,21 +142,24 @@ popage <- data.frame(
 Find the percentage of each age category in KC sampled.
 
 ```{r}
-mhdemo$age <- df |>
+demo$age <- df |>
   rename(age = age1) |>
   left_join(
     popage,
     by = "age"
   ) |>
-  mutate(pct_kc = pct(estimate, kc_total, 5))
+  mutate(
+    pct_kc = pct(estimate, kc_total, 5),
+    pct_fmt_kc = pct(estimate, kc_total)
+  )
 
-mhdemo$age
+demo$age
 ```
 
 ## Age structure
 
 ```{r}
-mhdemo$age_str <- mhsurv |>
+demo$age_str <- mhsurv |>
   summarize_results("age1", "birth_sex") |>
   mutate(n = case_when(
     birth_sex == "Female" ~ -n,
@@ -162,7 +168,7 @@ mhdemo$age_str <- mhsurv |>
   )) |>
   rename(age = age1)
 
-mhdemo$age_str
+demo$age_str
 ```
 
 ## Race/ethnicity
@@ -192,7 +198,10 @@ df <- df |>
   drop_na() |>
   count(race_ethnicity, .drop = FALSE) |>
   mutate(total = t) |>
-  mutate(pct = pct(n, total, 5)) |>
+  mutate(
+    pct = pct(n, total, 5),
+    pct_fmt = pct(n, total, format = TRUE)
+  ) |>
   mutate(race_ethnicity = str_remove(race_ethnicity, "\\s\\(.*$"))
 ```
 
@@ -202,10 +211,10 @@ lvl <- df |>
   arrange(pct) |>
   pull(race_ethnicity)
 
-mhdemo$race_ethnicity <- df |>
+demo$race_ethnicity <- df |>
   mutate(race_ethnicity = factor(race_ethnicity, levels = lvl))
 
-mhdemo$race_ethnicity
+demo$race_ethnicity
 ```
 
 Summarize the write-in responses for "Other".
@@ -280,7 +289,10 @@ df <- df |>
     keep = TRUE # keeps `re_bwo` as factor
   ) |>
   select(-race) |>
-  mutate(pct_kc = pct(estimate, kc_total, 5)) |>
+  mutate(
+    pct_kc = pct(estimate, kc_total, 5),
+    pct_fmt_kc = pct(estimate, kc_total, format = TRUE)
+  ) |>
   rename(race_collapsed = re_bwo)
 ```
 
@@ -300,23 +312,28 @@ Prep for plotting.
 ```{r}
 lvl <- c("Survey respondents", "Kansas City population")
 
-mhdemo$race_collapsed <- df |>
-  select(race_collapsed, pct, pct_kc) |>
+demo$race_collapsed <- df |>
+  select(
+    race_collapsed,
+    pct_srvy = pct, pct_kc,
+    pctfmt_srvy = pct_fmt, pctfmt_kc = pct_fmt_kc
+  ) |>
   pivot_longer(
     cols = !race_collapsed,
-    names_to = "group",
-    values_to = "pct"
+    names_to = c(".value", "pop"),
+    names_sep = "_"
   ) |>
-  mutate(group = case_when(
-    group == "pct" ~ lvl[1],
-    group == "pct_kc" ~ lvl[2]
+  mutate(pop = case_when(
+    pop == "srvy" ~ lvl[1],
+    pop == "kc" ~ lvl[2]
   )) |>
   mutate(
-    group = factor(group, levels = lvl),
+    pop = factor(pop, levels = lvl),
     total = unique(df$total)
-  )
+  ) |>
+  rename(pct_fmt = pctfmt)
 
-mhdemo$race_collapsed
+demo$race_collapsed
 ```
 
 ## Hispanic origin
@@ -356,7 +373,10 @@ df <- df |>
     keep = TRUE # preserve join var as factor
   ) |>
   select(-hispanic_origin_acs) |>
-  mutate(pct_kc = pct(estimate, kc_total, 5))
+  mutate(
+    pct_kc = pct(estimate, kc_total, 5),
+    pct_fmt_kc = pct(estimate, kc_total, format = TRUE)
+  )
 
 df
 ```
@@ -366,23 +386,28 @@ Prep for plotting.
 ```{r}
 lvl <- c("Survey respondents", "Kansas City population")
 
-mhdemo$hispanic_origin <- df |>
-  select(hispanic_origin, pct, pct_kc) |>
+demo$hispanic_origin <- df |>
+  select(
+    hispanic_origin,
+    pct_srvy = pct, pct_kc,
+    pctfmt_srvy = pct_fmt, pctfmt_kc = pct_fmt_kc
+  ) |>
   pivot_longer(
     cols = !hispanic_origin,
-    names_to = "group",
-    values_to = "pct"
+    names_to = c(".value", "pop"),
+    names_sep = "_"
   ) |>
-  mutate(group = case_when(
-    group == "pct" ~ lvl[1],
-    group == "pct_kc" ~ lvl[2]
+  mutate(pop = case_when(
+    pop == "srvy" ~ lvl[1],
+    pop == "kc" ~ lvl[2]
   )) |>
   mutate(
-    group = factor(group, levels = lvl),
+    pop = factor(pop, levels = lvl),
     total = unique(df$total)
-  )
+  ) |>
+  rename(pct_fmt = pctfmt)
 
-mhdemo$hispanic_origin
+demo$hispanic_origin
 ```
 
 ## HOI regions
@@ -408,7 +433,7 @@ popzcta <- acs5_zcta_2023 |>
 Find the percentage of each ZCTA population in KC sampled.
 
 ```{r}
-mhgeo$zip <- mhsurv |>
+geo$zip <- mhsurv |>
   summarize_results("zip", drop = FALSE, na_rm = FALSE) |>
   left_join(
     sf_zcta_2024 |>
@@ -425,22 +450,22 @@ mhgeo$zip <- mhsurv |>
   select(-GEOID, -GEOID20) |>
   mutate(pct_kc = pct(estimate, kc_total, 5) * kc_area_pct / 100)
 
-mhgeo$zip
+geo$zip
 ```
 
 ```{r}
-mhgeo$zip |>
+geo$zip |>
   filter(kc_area_pct >= 20, estimate >= 1100)
 ```
 
 ## Council district
 
 ```{r}
-mhgeo$district <- mhsurv |>
+geo$district <- mhsurv |>
   group_by(district) |>
   summarize(count = n())
 
-mhgeo$district
+geo$district
 ```
 
 # Plot/viz
@@ -448,35 +473,35 @@ mhgeo$district
 ## Demographics
 
 ```{r}
-mhfigs <- imap(mhdemo, \(df, x) plot_sample(df, x))
-names(mhfigs) <- names(mhdemo)
+figs <- imap(demo, \(df, x) plot_sample(df, x))
+names(figs) <- names(demo)
 
-mhcaps <- imap(mhdemo, \(df, x) cap_text(df, x))
-names(mhcaps) <- names(mhdemo)
+caps <- imap(demo, \(df, x) cap_text(df, x))
+names(caps) <- names(demo)
 ```
 
 ```{r fig.width=3, fig.height=3}
-mhfigs$birth_sex
+figs$birth_sex
 ```
 
 ```{r fig.width=5, fig.height=3}
-mhfigs$age
+figs$age
 ```
 
 ```{r fig.width=5, fig.height=3}
-mhfigs$age_str
+figs$age_str
 ```
 
 ```{r fig.width=5, fig.height=3}
-mhfigs$race_ethnicity
+figs$race_ethnicity
 ```
 
 ```{r fig.width=5, fig.height=3.5}
-mhfigs$race_collapsed
+figs$race_collapsed
 ```
 
 ```{r fig.width=4, fig.height=3.5}
-mhfigs$hispanic_origin
+figs$hispanic_origin
 ```
 
 ## Maps
@@ -587,7 +612,7 @@ pts <- st_transform(
 ```
 
 ```{r fig.width=4, fig.height=6}
-mhfigs$map_respondents <- ggplot(data = geo_kc) +
+figs$map_respondents <- ggplot(data = geo_kc) +
   basemaps::basemap_gglayer(
     ext = ext,
     map_service = "osm",
@@ -614,24 +639,24 @@ mhfigs$map_respondents <- ggplot(data = geo_kc) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_void()
 
-mhcaps$map_respondents <- paste0(
+caps$map_respondents <- paste0(
   "Approximate locations of Mental Health Survey respondents. N = 648."
 )
 
-mhfigs$map_respondents
+figs$map_respondents
 ```
 
 ## Tables
 
 ```{r}
-tbl_dist <- mhgeo$district |>
+tbl_dist <- geo$district |>
   gt() |>
   cols_label(
     district = "Council district",
     count = "Number of respondents"
   )
 
-mhcaps$tbl_dist <- "Survey respondents by council district"
+caps$tbl_dist <- "Survey respondents by council district"
 
 tbl_dist
 ```
@@ -639,48 +664,48 @@ tbl_dist
 # Save
 
 ```{r}
-dir.create("mh-report/img", showWarnings = FALSE)
+dir.create("report/img", showWarnings = FALSE)
 ```
 
 ```{r}
 ggsave(
-  "mh-report/img/map-respondents.png", mhfigs$map_respondents,
+  "report/img/map-respondents.png", figs$map_respondents,
   height = 6, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-sex.png", mhfigs$birth_sex,
+  "report/img/demo-sex.png", figs$birth_sex,
   width = 3, height = 3, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-age.png", mhfigs$age,
+  "report/img/demo-age.png", figs$age,
   width = 5, height = 3, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-age-str.png", mhfigs$age_str,
+  "report/img/demo-age-str.png", figs$age_str,
   width = 6, height = 3.5, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-race-eth.png", mhfigs$race_ethnicity,
+  "report/img/demo-race-eth.png", figs$race_ethnicity,
   width = 6, height = 4, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-race-col.png", mhfigs$race_collapsed,
+  "report/img/demo-race-col.png", figs$race_collapsed,
   width = 6, height = 4, dpi = 100
 )
 
 ggsave(
-  "mh-report/img/demo-hisp.png", mhfigs$hispanic_origin,
+  "report/img/demo-hisp.png", figs$hispanic_origin,
   width = 4.5, height = 4, dpi = 100
 )
 
-gtsave(tbl_dist, "mh-report/img/tbl-dist.png")
+gtsave(tbl_dist, "report/img/tbl-dist.png")
 ```
 
 ```{r}
-saveRDS(mhcaps, "../data/2-final/figure_captions_sample.rds")
+saveRDS(caps, "../data/2-final/figure_captions_sample.rds")
 ```

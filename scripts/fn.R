@@ -98,7 +98,10 @@ summarize_results <- function(
       ) |>
       dplyr::rename(gp_subtotal = n_gp_subtotal) |>
       dplyr::mutate(total = total, .after = gp_subtotal) |>
-      dplyr::mutate(pct = setmeup::pct(n, gp_subtotal, digits = 5))
+      dplyr::mutate(
+        pct = setmeup::pct(n, gp_subtotal, digits = 5),
+        pct_fmt = setmeup::pct(n, gp_subtotal, format = TRUE)
+      )
   } else {
     total <- nrow(df)
 
@@ -108,14 +111,17 @@ summarize_results <- function(
         .drop = drop
       ) |>
       dplyr::mutate(total = total) |>
-      dplyr::mutate(pct = setmeup::pct(n, total, digits = 5))
+      dplyr::mutate(
+        pct = setmeup::pct(n, total, digits = 5),
+        pct_fmt = setmeup::pct(n, total, format = TRUE)
+      )
   }
 }
 
 
 # Plotting ----------------------------------------------------------------
 
-mh_pie_chart <- function(
+mhs_pie_chart <- function(
     plot,
     plot_title = NULL,
     legend = TRUE,
@@ -157,7 +163,7 @@ mh_pie_chart <- function(
   plot
 }
 
-mh_barplot <- function(
+mhs_barplot <- function(
     plot,
     bar_position = c("stack", "dodge"),
     bar_reverse = FALSE,
@@ -253,7 +259,7 @@ contrast_color <- function(color) {
   ifelse(hcl[, "l"] > 60, "#000000", "#FFFFFF")
 }
 
-mh_palette <- function(pal, n = NULL) {
+mhs_palette <- function(pal, n = NULL) {
   if (pal == "candy") {
     # clr <- c("#0aa81b", "#a7ca4c", "#ffec93", "#ff9c46", "#ff1442")
     clr <- c("#00876c", "#89c079", "#fff492", "#f69c56", "#d43d51")

@@ -1,9 +1,4 @@
 
-saveRDS(mhsurv2, "../data/2-final/mh_survey_results.rds")
-
-mh0 <- readRDS("data/2-final/mh_survey_results.rds")
-
-
 
 
 

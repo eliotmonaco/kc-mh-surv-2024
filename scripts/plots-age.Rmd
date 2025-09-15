@@ -14,7 +14,7 @@ lapply(list.files(pattern = "^fn"), source)
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ```
 
 ```{r}
@@ -28,7 +28,7 @@ names(mhsmry) <- vars
 ```
 
 ```{r}
-mhfigs <- imap(mhsmry, \(df, x) {
+figs <- imap(mhsmry, \(df, x) {
   n <- ifelse(x == "hse", 0, 5)
 
   p <- df |>
@@ -57,9 +57,9 @@ mhfigs <- imap(mhsmry, \(df, x) {
   p
 })
 
-names(mhfigs) <- paste0(vars, "_age")
+names(figs) <- paste0(vars, "_age")
 
-mhcaps <- imap(mhsmry, \(df, x) {
+caps <- imap(mhsmry, \(df, x) {
   cap <- cap_text(df, x)
   
   if (x == "hse") {
@@ -69,33 +69,33 @@ mhcaps <- imap(mhsmry, \(df, x) {
   cap
 })
 
-names(mhcaps) <- paste0(vars, "_age")
+names(caps) <- paste0(vars, "_age")
 ```
 
 ```{r fig.width=7, fig.height=4.5}
-mhfigs$si_bin_age
+figs$si_bin_age
 ```
 
 ```{r fig.width=7, fig.height=4.5}
-mhfigs$sm_use_bin_age
+figs$sm_use_bin_age
 ```
 
 ```{r fig.width=7, fig.height=4.5}
-mhfigs$hse_age
+figs$hse_age
 ```
 
 # Save/export
 
 ```{r include=FALSE}
-imap(mhfigs, \(x, i) {
+imap(figs, \(x, i) {
   i <- gsub("_", "-", i)
   ggsave(
-    paste0("mh-report/img/", i, ".png"), x,
+    paste0("report/img/", i, ".png"), x,
     width = 7, height = 4.5, dpi = 100
   )
 })
 ```
 
 ```{r}
-saveRDS(mhcaps, "../data/2-final/figure_captions_questions_by_age.rds")
+saveRDS(caps, "../data/2-final/figure_captions_questions_by_age.rds")
 ```

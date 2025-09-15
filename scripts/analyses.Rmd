@@ -246,8 +246,8 @@ t(df)
 # Save/export
 
 ```{r}
-gtsave(tbl$slp_lat, "mh-report/img/tbl-slp-lat.png")
-gtsave(tbl$slp_dur_stats, "mh-report/img/tbl-slp-dur-stats.png")
+gtsave(tbl$slp_lat, "report/img/tbl-slp-lat.png")
+gtsave(tbl$slp_dur_stats, "report/img/tbl-slp-dur-stats.png")
 ```
 
 ```{r}

@@ -29,9 +29,9 @@ mhsurv <- read_excel("../data/1-source/KC Health_raw data_Mental Health Survey R
 Import codebook.
 
 ```{r}
-sh <- excel_sheets("../data/1-source/mh-codebook.xlsx")
+sh <- excel_sheets("../data/1-source/mhs-codebook.xlsx")
 cb <- lapply(sh, \(x) read_excel(
-  "../data/1-source/mh-codebook.xlsx",
+  "../data/1-source/mhs-codebook.xlsx",
   sheet = x
 ))
 names(cb) <- sh
@@ -828,6 +828,6 @@ if (!isTRUE(all.equal(cols[[1]], cols[[2]]))) {
 # Save
 
 ```{r}
-saveRDS(cb, "../data/2-final/mh_codebook.rds")
+saveRDS(cb, "../data/2-final/mhs_codebook.rds")
 saveRDS(mhsurv, "../data/2-final/mh_survey_results.rds")
 ```

@@ -25,7 +25,7 @@ source("fn.R")
 
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
-cb <- readRDS("../data/2-final/mh_codebook.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ```
 
 ```{r}
@@ -44,12 +44,12 @@ pwplot <- function(df, var, title) {
         grouping_factor = i
       )
     if (i != "All") {
-      mh_barplot(df, pct, .data[[f]], label, .data[[var]]) +
+      mhs_barplot(df, pct, .data[[f]], label, .data[[var]]) +
         scale_y_discrete(limits = rev(levels(df[[f]]))) +
         xlab("%") + ylab(i) +
         scale_fill_viridis_d(labels = function(x) str_wrap(x, width = 25))
     } else {
-      mh_barplot(df, pct, grouping_factor, label, .data[[var]]) +
+      mhs_barplot(df, pct, grouping_factor, label, .data[[var]]) +
         xlab("%") + ylab("") +
         scale_fill_viridis_d(labels = function(x) str_wrap(x, width = 25))
     }
