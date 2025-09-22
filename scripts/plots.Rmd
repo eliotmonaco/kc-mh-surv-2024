@@ -80,7 +80,7 @@ figs$q4_1
 figs$q9
 ```
 
-```{r fig.width=7, fig.height=6}
+```{r fig.width=7, fig.height=4.5}
 figs$q11
 ```
 
@@ -95,7 +95,7 @@ dims <- list(
   vbar5 = list(w = 6, h = 3.5),
   vbarwide = list(w = 8, h = 3.5),
   vbarst = list(w = 7, h = 3.5),
-  q11 = list(w = 7, h = 6),
+  q11 = list(w = 7, h = 4.5),
   pie = list(w = 6, h = 3)
 )
 

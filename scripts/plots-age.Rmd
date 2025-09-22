@@ -30,10 +30,11 @@ names(mhsmry) <- vars
 ```{r}
 figs <- imap(mhsmry, \(df, x) {
   n <- ifelse(x == "hse", 0, 5)
+  os <- ifelse(x == "sm_use_bin", .8, 0)
 
   p <- df |>
     rename(age = age2) |>
-    plot_grouped_data(x, "age", n_repel = n, dir = "v")
+    plot_grouped_data(x, "age", label_min = n, offset = os, dir = "v")
 
   if (x == "hse") {
     p <- p +

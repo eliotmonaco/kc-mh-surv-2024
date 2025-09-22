@@ -177,7 +177,7 @@ plot_sample <- function(df, var) {
     p <- df |>
       ggplot(aes(x = n, y = age, label = lbl, fill = fcolor)) |>
       mhs_barplot(
-        width = .95,
+        width = .8,
         legend_title = FALSE,
         base_font_size = 11
       ) +
@@ -278,7 +278,7 @@ plot_data <- function(df, var, text_size = 11) {
         fontface = "bold"
       ) +
       scale_x_continuous(expand = c(0, NA)) +
-      scale_y_discrete(labels = ~ label_wrap(.x, 32)) +
+      scale_y_discrete(labels = ~ label_wrap(.x, 38)) +
       xlab("\nPercentage of respondents") +
       ylab("Reason\n")
   } else if (plot == "pie") {
@@ -311,7 +311,8 @@ plot_grouped_data <- function(
     df,
     var,
     fctr,
-    n_repel,
+    label_min, # minimum value for normal labels
+    offset = 0, # offset value for framed labels
     dir = c("h", "v"),
     text_size = 11) {
   plot <- cb$viz$plot[cb$viz$var == var]
@@ -329,21 +330,16 @@ plot_grouped_data <- function(
     pal <- mhs_palette(pal, ncolors)
 
     df <- df |>
-      mutate(lbl = if_else( # normal labels
-        pct > n_repel,
-        pct_fmt,
-        ""
-      )) |>
-      mutate(lbl2 = if_else( # ggrepel labels
-        pct <= n_repel,
-        pct_fmt,
-        ""
-      )) |>
+      # normal labels
+      mutate(lbl = if_else(pct > label_min, pct_fmt, "")) |>
       mutate(fcolor = pal[as.numeric(df[[var]])]) |>
-      # make fill transparent for ggrepel labels
-      mutate(fcolor2 = if_else(pct > n_repel, NA, paste0(fcolor, "AA"))) |>
       mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
-      mutate(lcolor = contrast_color(fcolor))
+      mutate(lcolor = contrast_color(fcolor)) |>
+      # framed labels
+      mutate(lbl2 = if_else(pct <= label_min, pct_fmt, "")) |>
+      # mutate(fcolor2 = if_else(pct > label_min, NA, paste0(fcolor, "AA"))) |>
+      mutate(fcolor2 = if_else(pct > label_min, NA, fcolor)) |>
+      mutate(lcolor2 = if_else(pct > label_min, NA, contrast_color(fcolor)))
 
     if (dir == "h") {
       p <- df |>
@@ -374,17 +370,19 @@ plot_grouped_data <- function(
         color = df$lcolor,
         fontface = "bold"
       ) +
-      ggrepel::geom_label_repel(
+      geom_label(
+      # ggrepel::geom_label_repel(
         aes(label = lbl2),
         position = position_stack(
-          vjust = .5,
+          vjust = .5 + offset,
           reverse = TRUE
         ),
-        color = df$lcolor,
+        text.color = df$lcolor2,
         fill = df$fcolor2,
+        border.color = colorspace::darken(df$fcolor2, .25),
         fontface = "bold",
-        show.legend = FALSE,
-        direction = switch(dir, h = "y", v = "x")
+        show.legend = FALSE#,
+        # direction = switch(dir, h = "y", v = "x")
       )
 
     if (dir == "h") {
