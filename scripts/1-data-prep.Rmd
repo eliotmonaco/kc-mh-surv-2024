@@ -199,13 +199,15 @@ cb[sh] <- lapply(sh, \(x) {
 ## Birth sex
 
 ```{r}
+lvl <- c("Female", "Male")
+
 mhsurv <- mhsurv |>
   mutate(birth_sex = case_when(
-    birth_sex == 1 ~ "Male",
-    birth_sex == 2 ~ "Female",
+    birth_sex == 1 ~ lvl[2],
+    birth_sex == 2 ~ lvl[1],
     .default = NA
   )) |>
-  mutate(birth_sex = factor(birth_sex, levels = c("Female", "Male")))
+  mutate(birth_sex = factor(birth_sex, levels = lvl))
 ```
 
 ## Race/ethnicity
@@ -269,19 +271,18 @@ Create collapsed category (`re_bwo`).
 - "Other" includes anyone who selected another category alone and anyone who selected multiple categories.
 
 ```{r}
+lvl <- c("Black", "White", "Other")
+
 mhsurv <- mhsurv |>
   mutate(
     re_bwo = case_when(
-      grepl("Asian|Hispanic|IndAm|Other|;", re_merge2) ~ "Other",
-      grepl("AfAm|African", re_merge2) ~ "Black",
-      grepl("MENA|White", re_merge2) ~ "White"
+      grepl("Asian|Hispanic|IndAm|Other|;", re_merge2) ~ lvl[3],
+      grepl("AfAm|African", re_merge2) ~ lvl[1],
+      grepl("MENA|White", re_merge2) ~ lvl[2]
     ),
     .after = re_merge2
   ) |>
-  mutate(re_bwo = factor(
-    re_bwo,
-    levels = c("Black", "White", "Other")
-  ))
+  mutate(re_bwo = factor(re_bwo, levels = lvl))
 ```
 
 ## Hispanic origin
@@ -292,17 +293,14 @@ Hispanic origin is a variable created from responses to the race/ethnicity quest
 - "Not Hispanic" includes anyone who did not select "Hispanic/Latinx".
 
 ```{r}
+lvl <- c("Hispanic", "Not Hispanic")
+
 mhsurv <- mhsurv |>
   mutate(
-    hispanic_origin = if_else(
-      re04 == 4, "Hispanic", "Not Hispanic", missing = "Not Hispanic"
-    ),
+    hispanic_origin = if_else(re04 == 4, lvl[1], lvl[2], missing = lvl[2]),
     .after = re_bwo
   ) |>
-  mutate(hispanic_origin = factor(
-    hispanic_origin,
-    levels = c("Hispanic", "Not Hispanic")
-  ))
+  mutate(hispanic_origin = factor(hispanic_origin,levels = lvl))
 ```
 
 ## Current gender
@@ -541,27 +539,25 @@ mhsurv <- mhsurv |>
 
 ### Validated method
 
-#### Emotional loneliness
+Score Q13 according to the De Jong Gierveld Loneliness Scale.
 
-Calculate the emotional loneliness score.
+#### Emotional loneliness
 
 > Count the neutral and positive answers ("more or less", "yes", or "yes!") on items 2, 3, 5, 6, 9, 10. This is the emotional loneliness score.
 
 ```{r}
 vars_emo <- paste0("q13_", sprintf("%02d", c(2, 3, 5, 6, 9, 10)))
 
-mhsurv$si_emo <- mhsurv |>
+mhsurv$lon_emo <- mhsurv |>
   select(all_of(vars_emo)) |>
   mutate(across(everything(), ~ if_else(.x %in% 3:5, 1, 0, 0))) |>
   rowSums()
 ```
 
-Calculate the missing emotional loneliness score.
-
 > Count the missing values (i.e., no answer) on items 2, 3, 5, 6, 9, 10. This is the missing emotional loneliness score.
 
 ```{r}
-mhsurv$si_emo_missing <- mhsurv |>
+mhsurv$lon_emo_missing <- mhsurv |>
   select(all_of(vars_emo)) |>
   mutate(across(everything(), ~ if_else(.x %in% 1:5, 0, 1, 1))) |>
   rowSums()
@@ -569,30 +565,26 @@ mhsurv$si_emo_missing <- mhsurv |>
 
 ```{r}
 df <- mhsurv |>
-  select(all_of(vars_emo), starts_with("si_emo"))
+  select(all_of(vars_emo), starts_with("lon_emo"))
 ```
 
 #### Social loneliness
-
-Calculate the social loneliness score.
 
 > Count the neutral and negative ("no!", "no", or "more or less") answers on items 1, 4, 7, 8, 11. This is the social loneliness score.
 
 ```{r}
 vars_soc <- paste0("q13_", sprintf("%02d", c(1, 4, 7, 8, 11)))
 
-mhsurv$si_soc <- mhsurv |>
+mhsurv$lon_soc <- mhsurv |>
   select(all_of(vars_soc)) |>
   mutate(across(everything(), ~ if_else(.x %in% 1:3, 1, 0, 0))) |>
   rowSums()
 ```
 
-Calculate the missing social loneliness score.
-
 > Count the missing values (i.e., no answer) on items 1, 4, 7, 8, 11. This is the missing social loneliness score.
 
 ```{r}
-mhsurv$si_soc_missing <- mhsurv |>
+mhsurv$lon_soc_missing <- mhsurv |>
   select(all_of(vars_soc)) |>
   mutate(across(everything(), ~ if_else(.x %in% 1:5, 0, 1, 1))) |>
   rowSums()
@@ -600,17 +592,15 @@ mhsurv$si_soc_missing <- mhsurv |>
 
 ```{r}
 df <- mhsurv |>
-  select(all_of(vars_soc), starts_with("si_soc"))
+  select(all_of(vars_soc), starts_with("lon_soc"))
 ```
 
 #### Total loneliness
 
-Calculate the total loneliness score.
-
 > Compute the total loneliness score by taking the sum of the emotional loneliness score and the social loneliness score.
 
 ```{r}
-mhsurv$si_total <- mhsurv$si_emo + mhsurv$si_soc
+mhsurv$lon_total <- mhsurv$lon_emo + mhsurv$lon_soc
 ```
 
 #### Drop invalid scores
@@ -619,32 +609,78 @@ mhsurv$si_total <- mhsurv$si_emo + mhsurv$si_soc
 The social loneliness score is valid only if the missing social loneliness score equals 0.
 The total loneliness score is valid only if the sum of the missing emotional loneliness score and the missing social loneliness score equals 0 or 1.
 
+Factorize all numeric scores. Emotional loneliness has 6 questions, so scale is 0-6. Social loneliness has 5 questions, so scale is 0-5. Total loneliness has 11 questions, so scale is 0 to 11.
+
 ```{r}
 mhsurv <- mhsurv |>
   mutate(
-    si_emo = if_else(si_emo_missing == 0, si_emo, NA),
-    si_soc = if_else(si_soc_missing == 0, si_soc, NA),
-    si_total = if_else((si_emo_missing + si_soc_missing) %in% 0:1, si_total, NA)
-  )
+    lon_emo = if_else(lon_emo_missing == 0, lon_emo, NA),
+    lon_soc = if_else(lon_soc_missing == 0, lon_soc, NA),
+    lon_total = if_else(
+      (lon_emo_missing + lon_soc_missing) %in% 0:1, lon_total, NA
+    )
+  ) |>
+  mutate(across(
+    c(lon_emo, lon_soc, lon_total),
+    ~ factor(.x, levels = minmax_seq(.x)),
+    .names = "{.col}_fac"
+  ))
 ```
 
-#### Binned score
+#### Binned score (total)
 
 > If desired, the total loneliness score can be categorized into four levels: not lonely (score 0, 1 or 2), moderate lonely (score 3 through 8), severe lonely (score 9 or 10), and very severe lonely (score 11).
 
 ```{r}
+lvl <- c(
+  "Not lonely",
+  "Moderate lonely",
+  "Severe lonely",
+  "Very severe lonely"
+)
+
 mhsurv <- mhsurv |>
-  mutate(si_total_bin = case_when(
-    si_total %in% 0:2 ~ "Not lonely",
-    si_total %in% 3:8 ~ "Moderate lonely",
-    si_total %in% 9:10 ~ "Severe lonely",
-    si_total == 11 ~ "Very severe lonely"
-  ))
+  mutate(lon_total_bin = case_when(
+    lon_total %in% 0:2 ~ lvl[1],
+    lon_total %in% 3:8 ~ lvl[2],
+    lon_total %in% 9:10 ~ lvl[3],
+    lon_total == 11 ~ lvl[4],
+    .default = NA
+  )) |>
+  mutate(lon_total_bin = factor(lon_total_bin, levels = lvl))
+```
+
+#### Binned scores (emotional & social)
+
+```{r}
+lvl <- c("Low", "Medium", "High")
+
+mhsurv <- mhsurv |>
+  mutate(lon_emo_bin = case_when(
+    lon_emo %in% 0:1 ~ lvl[1],
+    lon_emo %in% 2:3 ~ lvl[2],
+    lon_emo %in% 4:6 ~ lvl[3],
+    .default = NA
+  )) |>
+  mutate(lon_emo_bin = factor(lon_emo_bin, levels = lvl))
+```
+
+```{r}
+lvl <- c("Low", "Medium", "High")
+
+mhsurv <- mhsurv |>
+  mutate(lon_soc_bin = case_when(
+    lon_soc %in% 0:1 ~ lvl[1],
+    lon_soc %in% 2:3 ~ lvl[2],
+    lon_soc %in% 4:5 ~ lvl[3],
+    .default = NA
+  )) |>
+  mutate(lon_soc_bin = factor(lon_soc_bin, levels = lvl))
 ```
 
 ```{r}
 df <- mhsurv |>
-  select(matches("^q13_|^si_"))
+  select(matches("^q13_|^lon_"))
 ```
 
 ### Original method
@@ -864,9 +900,9 @@ mhsurv <- mhsurv |>
     re_full = re_merge1,
     re_abbr = re_merge2,
     cg = cg_merge,
-    si_emo_num = si_emo,
-    si_soc_num = si_soc,
-    si_total_num = si_total,
+    lon_emo_num = lon_emo,
+    lon_soc_num = lon_soc,
+    lon_total_num = lon_total,
     si_num = si_comp,
     sm_add_num = sm_comp,
     sm_use_num = q15,

@@ -62,11 +62,11 @@ df <- mhsurv |>
 Pull the ACS population estimates by sex for Kansas City.
 
 ```{r}
-poptotal <- acs1_city_2023 |>
+poptotal <- acs1_city_2024 |>
   filter(variable == "B01001_001") |>
   pull(estimate)
 
-popsex <- acs1_city_2023 |>
+popsex <- acs1_city_2024 |>
   filter(variable %in% c("B01001_002", "B01001_026")) |>
   mutate(kc_total = poptotal)
 ```
@@ -105,7 +105,7 @@ Pull the ACS population estimates by age for Kansas City.
 ```{r}
 p <- paste0("(", paste(18:100, collapse = "|"), ").*years")
 
-popage <- acs1_city_2023 |>
+popage <- acs1_city_2024 |>
   filter(
     str_detect(label, p),
     concept == "Sex by Age"
@@ -246,7 +246,7 @@ df <- df |>
 Pull the ACS population estimates by race for Kansas City.
 
 ```{r}
-poprace <- acs1_city_2023 |>
+poprace <- acs1_city_2024 |>
   filter(grepl("B01001[A-G]_001", variable)) |>
   mutate(kc_total = poptotal)
 ```
@@ -348,7 +348,7 @@ df <- mhsurv |>
 Pull the ACS population estimate by Hispanic origin for Kansas City and summarize.
 
 ```{r}
-pophisp <- acs1_city_2023 |>
+pophisp <- acs1_city_2024 |>
   filter(grepl("B01001I_001", variable)) |>
   mutate(kc_total = poptotal) |>
   pull(estimate)

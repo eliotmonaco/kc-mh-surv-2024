@@ -46,13 +46,13 @@ caps <- c(caps1, caps2, caps3, caps4, caps5)
 print_from_md_file(md, "intro", 3)
 ```
 
-### Purpose
+## Executive summary
 
 ```{r results='asis'}
-print_from_md_file(md, "purpose", 3)
+print_from_md_file(md, "exec", 3)
 ```
 
-### Methodology
+## Survey methodology
 
 ```{r results='asis'}
 print_from_md_file(md, "method", 3)
@@ -80,13 +80,7 @@ print_from_md_file(md, "sample", 3)
 
 ![`r caps$hispanic_origin`](demo-hisp.png){#fig-hisp}
 
-## Survey results
-
-### Executive summary
-
-```{r results='asis'}
-print_from_md_file(md, "exec", 3)
-```
+## Results
 
 ### Personal mental health
 
@@ -264,32 +258,48 @@ print_from_md_file(md, "certified", 3)
 
 ![`r caps$map_ccbhc`](map-ccbhc.png){#fig-map-ccbhc}
 
-### Social isolation
+### Emotional & social loneliness
 
 ```{r results='asis'}
-print_from_md_file(md, "isolation", 3)
+print_from_md_file(md, "loneliness", 3)
 ```
 
 <!-- SI score -->
 
-```{r results='asis'}
-hdr <- cb$viz$header[cb$viz$var == "si_bin"]
-print_md_text(paste("####", hdr))
-```
+<!-- ```{r results='asis'} -->
+<!-- hdr <- cb$viz$header[cb$viz$var == "si_bin"] -->
+<!-- print_md_text(paste("####", hdr)) -->
+<!-- ``` -->
 
-![`r caps$si_bin`](si-bin.png){#fig-si1}
+<!-- ![`r caps$si_bin`](si-bin.png){#fig-si1} -->
 
-```{r results='asis'}
-print_from_md_file(md, "si-bin", 3, silent = TRUE)
-```
+<!-- ```{r results='asis'} -->
+<!-- print_from_md_file(md, "si-bin", 3, silent = TRUE) -->
+<!-- ``` -->
 
 <!-- SI score by age -->
 
-![`r caps$si_bin_age`](si-bin-age.png){#fig-si2}
+<!-- ![`r caps$si_bin_age`](si-bin-age.png){#fig-si2} -->
 
-```{r results='asis'}
-print_from_md_file(md, "si-bin-age", 3)
-```
+<!-- ```{r results='asis'} -->
+<!-- print_from_md_file(md, "si-bin-age", 3) -->
+<!-- ``` -->
+
+<!-- Emotional loneliness -->
+
+![`r caps$lon_emo_bin`](lon-emo-bin.png){#fig-lon1}
+
+<!-- Social loneliness -->
+
+![`r caps$lon_soc_bin`](lon-soc-bin.png){#fig-lon2}
+
+<!-- Total loneliness score -->
+
+![`r caps$lon_total_fac`](lon-total-fac.png){#fig-lon3}
+
+<!-- Total loneliness categories -->
+
+![`r caps$lon_total_bin`](lon-total-bin.png){#fig-lon4}
 
 ### Social media use
 

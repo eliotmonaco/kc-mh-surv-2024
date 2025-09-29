@@ -290,3 +290,68 @@ mhs_palette <- function(pal, n = NULL) {
     c("#318CCC", "#F04C43")
   }
 }
+
+add_brackets <- function(
+    plot,
+    axis = c("x", "y"),
+    range,
+    distance,
+    bracket_offset = 0,
+    labels,
+    label_offset = 0) {
+  axis <- match.arg(axis)
+
+  build <- ggplot2::ggplot_build(plot)
+
+  if (axis == "x") {
+    # Modify axis to allow placement of text outside plot area
+    axis_range <- build$layout$panel_scales_y[[1]]$range$range
+
+    plot <- plot +
+      ggplot2::coord_cartesian(ylim = axis_range, clip = "off")
+
+    # Get axis text size
+    properties <- ggplot2::calc_element(
+      "axis.text.x",
+      ggplot2:::plot_theme(build$plot)
+    )
+
+    for (i in 1:length(range)) {
+      plot <- plot +
+        ggplot2::geom_segment( # parallel segment
+          x = range[[i]][1] - bracket_offset,
+          xend = range[[i]][2] + bracket_offset,
+          y = distance,
+          yend = distance,
+          linewidth = .5
+        ) +
+        ggplot2::geom_segment( # perpendicular segment (inner)
+          x = range[[i]][1] - bracket_offset,
+          xend = range[[i]][1] - bracket_offset,
+          y = distance,
+          yend = distance + .5,
+          linewidth = .5
+        ) +
+        ggplot2::geom_segment( # perpendicular segment (outer)
+          x = range[[i]][2] + bracket_offset,
+          xend = range[[i]][2] + bracket_offset,
+          y = distance,
+          yend = distance + .5,
+          linewidth = .5
+        ) +
+        ggplot2::annotate(
+          "text",
+          x = range[[i]][1] + (range[[i]][2] - range[[i]][1]) / 2,
+          y = distance + label_offset,
+          label = labels[i],
+          size = properties$size / .pt,
+          vjust = 1
+        )
+    }
+  } else if (axis == "y") {
+
+  }
+
+  plot
+}
+
