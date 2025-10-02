@@ -17,7 +17,7 @@ library(sf)
 ```
 
 ```{r}
-source("fn.R")
+source("fn1.R")
 ```
 
 Import raw survey results from ETC.

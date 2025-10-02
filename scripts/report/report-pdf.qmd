@@ -1,0 +1,46 @@
+---
+format:
+  typst:
+    template-partials:
+      - typst-show.typ
+      - typst-template.typ
+    execute:
+      echo: false
+      include: false
+    resource-path: 
+      - img/
+---
+
+```{r}
+# Source report text from Word doc
+doc <- setmeup::convert_doc(
+  file1 = "../../data/1-source/report-text.docx",
+  file2 = "../../data/1-source/report-text.typ"
+)
+
+# Source text replacements
+source("replace-pdf.R")
+```
+
+```{r}
+doc <- stringr::str_replace_all(doc, replacements)
+```
+
+```{r}
+doc <- doc[which(grepl("^= Introduction", doc)):length(doc)]
+
+doc <- paste(doc, collapse = "\n")
+```
+
+```{=typst}
+#import "typst-template.typ": rectwhite, rectgrey
+
+#show heading: set align(center)
+```
+
+```{=typst}
+#page[
+  `r doc`
+]
+```
+

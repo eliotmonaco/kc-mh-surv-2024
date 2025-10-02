@@ -1,52 +1,89 @@
 #let template(
   title: "Title",
+  subtitle: "Subtitle",
   author: "Author",
   body,
 ) = {
-  // Metadata
+  // METADATA
+
   set document(title: title, author: author)
 
-  // Formatting & layout
-  set text(font: "Calibri", size: 12pt)
+  // FORMATTING & LAYOUT
+
+  set text(font: "Lato", size: 12pt)
 
   set page(
-    margin: (x: .5in, y: .5in),
+    margin: (x: 1in, y: 1in),
+    columns: 1,
     footer: context {
       if counter(page).get().first() > 1 [ // footer only after p1
-        #upper(title)
+        #set text(10pt)
+        #upper(title) | #upper("2024 Report")
         #h(1fr)
         #counter(page).display()
       ]
     }
   )
 
-  // Title page
-  page(background: rect(fill: navy, width: 100%, height: 3in))[
+  set list(indent: .25in)
+
+  set enum(indent: .25in)
+
+  // FIGURES & TABLES
+
+  show figure.caption: set text(size: 10pt)
+
+  show figure.where(
+    kind: table
+  ): set figure.caption(position: top)
+
+  set table(stroke: none)
+
+  // TITLE PAGE
+
+  page(
+    background: rect(
+      fill: rgb("#318CCC"),
+      stroke: none,
+      width: 100%,
+      height: 2.5in,
+      inset: 0pt
+    )[
+      #align(bottom)[#image("img/fountain.svg", height: 2in)]
+    ]
+  )[
     #set text(fill: white, weight: "bold")
-    #set align(center)
-    #set block(width: 6in)
-    #v(1fr)
+    #set align(center + horizon)
+    #set block(width: 6.5in)
     #grid(
       columns: 1, rows: 1,
       block[
-        #text(size: 32pt)[#title] \
-        #text(size: 24pt)[#author]
+        #v(.3in)
+        #text(size: 30pt)[#title] \
+        #v(.01in)
+        #text(size: 26pt)[2024 Report] \  // no quarto/pandoc support yet for
+        #v(.1in)                          // the yaml param subtitle
+        #text(size: 16pt)[#author.replace("\\", "")]
       ]
     )
-    #v(1fr)
   ]
 
-  // Table of contents
+  // TABLE OF CONTENTS
+
   show outline: it => {
     show heading: set align(center)
     it
   }
 
-  outline(indent: n => n * 1.2em)
+  outline(
+    depth: 4,
+    indent: n => n * 1.2em
+  )
 
   pagebreak()
 
-  // Document body
+  // DOCUMENT BODY
+
   body
 }
 
@@ -70,9 +107,24 @@
   width: 100%
 ) = {
   rect(
-    stroke: rgb("#dddddd") + 3pt,
-    fill: rgb("#dddddd"),
+    stroke: rgb("#eeeeee") + 3pt,
+    fill: rgb("#eeeeee"),
     inset: 10pt,
+    width: width,
+    height: height,
+    [#body]
+  )
+}
+
+#let rectclear(
+  body,
+  height: auto,
+  width: 100%
+) = {
+  rect(
+    stroke: none,
+    fill: none,
+    inset: 0pt,
     width: width,
     height: height,
     [#body]

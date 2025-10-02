@@ -23,7 +23,7 @@ library(htmlwidgets)
 ```
 
 ```{r}
-source("fn.R")
+source("fn1.R")
 ```
 
 Import survey and HOI region data.

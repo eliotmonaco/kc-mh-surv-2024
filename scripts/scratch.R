@@ -1,6 +1,14 @@
 
 
 
+doc <- setmeup::convert_doc(
+  file1 = "data/1-source/report-text.docx",
+  file2 = "data/1-source/report-text.typ"
+)
+
+
+
+
 
 library(tidyverse)
 library(kcData)
@@ -57,7 +65,7 @@ ggplot(sf_city_2023) +
 
 mhsurv <- readRDS("data/2-final/mh_survey_results.rds")
 
-source("scripts/fn.R")
+source("scripts/fn1.R")
 
 fvars <- list(
   all = NULL, sex = "birth_sex", age = "age",
@@ -118,14 +126,6 @@ ELC_word <- function(file){
 
   return(md_lines)
 }
-
-
-
-
-
-
-
-
 
 
 

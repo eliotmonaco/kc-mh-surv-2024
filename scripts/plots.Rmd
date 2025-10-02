@@ -72,6 +72,15 @@ figs$slp_lat <- df |>
 caps$slp_lat <- paste0("N = ", nrow(df), ".")
 ```
 
+```{r}
+# Plot for PDF report with modified label text
+figs$sm_use_fac2 <- plot_data(
+  mhsmry$sm_use_fac,
+  "sm_use_fac",
+  label_text_size = 9
+)
+```
+
 ```{r fig.width=6, fig.height=3.5}
 figs$q4_1
 ```
@@ -114,6 +123,10 @@ figs$lon_soc_bin
 
 ```{r}
 caps$lon_soc_bin
+```
+
+```{r}
+figs$sm_use_fac2
 ```
 
 ```{r fig.width=8, fig.height=3.5}
@@ -203,6 +216,39 @@ q <- list(
 ```{r include=FALSE}
 imap(q, \(x, i) {
   i2 <- gsub("_", "-", i)
+  ggsave(
+    paste0("report/img/", i2, ".png"), figs[[i]],
+    width = x$w, height = x$h, dpi = 100
+  )
+})
+```
+
+```{r}
+dims <- lapply(dims, \(x) {
+  if (x$w > 6.3) {
+    x$w <- 6.3
+    x
+  } else {
+    NULL
+  }
+})
+
+dims <- compact(dims)
+
+q <- list(
+  q11 = dims$q11,
+  lon_emo_fac = dims$vbarwide,
+  lon_soc_fac = dims$vbarwide,
+  lon_total_fac = dims$vbarwide2,
+  sm_use_fac2 = dims$vbarwide,
+  slp_dur_fac = dims$vbarwide,
+  slp_lat = dims$vbarwide
+)
+```
+
+```{r include=FALSE}
+imap(q, \(x, i) {
+  i2 <- paste0(gsub("_", "-", i), "-pdf")
   ggsave(
     paste0("report/img/", i2, ".png"), figs[[i]],
     width = x$w, height = x$h, dpi = 100

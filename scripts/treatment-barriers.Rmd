@@ -11,7 +11,7 @@ library(patchwork)
 ```
 
 ```{r}
-source("fn.R")
+source("fn1.R")
 ```
 
 ```{r}

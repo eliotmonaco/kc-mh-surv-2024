@@ -23,7 +23,7 @@ library(patchwork)
 ```
 
 ```{r}
-source("fn.R")
+source("fn1.R")
 source("fn2.R")
 ```
 

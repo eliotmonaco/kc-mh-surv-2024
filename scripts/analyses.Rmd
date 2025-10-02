@@ -114,7 +114,8 @@ tbl$slp_dur_stats <- gt(df) |>
     population = "Population",
     dur7lt = md("Under 7 hours"),
     dur7gt = md("7 hours or more")
-  )
+  ) |>
+  opt_vertical_padding(scale = .25)
 
 tbl$slp_dur_stats
 ```
@@ -158,7 +159,8 @@ tbl$slp_lat <- df |>
     mean = md("Mean<br>(average)"),
     median = md("Median<br>(middle value)"),
     mode = md("Mode<br>(most frequent value)")
-  )
+  ) |>
+  opt_vertical_padding(scale = .25)
 
 tbl$slp_lat
 ```

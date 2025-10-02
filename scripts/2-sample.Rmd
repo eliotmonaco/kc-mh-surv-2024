@@ -612,7 +612,7 @@ pts <- st_transform(
 ```
 
 ```{r fig.width=4, fig.height=6}
-figs$map_respondents <- ggplot(data = geo_kc) +
+figs$map_resp <- ggplot(data = geo_kc) +
   basemaps::basemap_gglayer(
     ext = ext,
     map_service = "osm",
@@ -639,11 +639,11 @@ figs$map_respondents <- ggplot(data = geo_kc) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_void()
 
-caps$map_respondents <- paste0(
+caps$map_resp <- paste0(
   "Approximate locations of Mental Health Survey respondents. N = 648."
 )
 
-figs$map_respondents
+figs$map_resp
 ```
 
 ## Tables
@@ -654,7 +654,8 @@ tbl_dist <- geo$district |>
   cols_label(
     district = "Council district",
     count = "Number of respondents"
-  )
+  ) |>
+  opt_vertical_padding(scale = .25)
 
 caps$tbl_dist <- "Survey respondents by council district"
 
@@ -669,37 +670,42 @@ dir.create("report/img", showWarnings = FALSE)
 
 ```{r}
 ggsave(
-  "report/img/map-respondents.png", figs$map_respondents,
+  "report/img/map-resp.png", figs$map_resp,
   height = 6, dpi = 100
 )
 
 ggsave(
-  "report/img/demo-sex.png", figs$birth_sex,
+  "report/img/sex.png", figs$birth_sex,
   width = 3, height = 3, dpi = 100
 )
 
+ggsave( # pdf report
+  "report/img/sex-pdf.png", figs$birth_sex,
+  width = 3, height = 2.5, dpi = 100
+)
+
 ggsave(
-  "report/img/demo-age.png", figs$age,
+  "report/img/age.png", figs$age,
   width = 5, height = 3, dpi = 100
 )
 
 ggsave(
-  "report/img/demo-age-str.png", figs$age_str,
+  "report/img/age-str.png", figs$age_str,
   width = 6, height = 3, dpi = 100
 )
 
 ggsave(
-  "report/img/demo-race-eth.png", figs$race_ethnicity,
+  "report/img/race-eth.png", figs$race_ethnicity,
   width = 6, height = 4, dpi = 100
 )
 
 ggsave(
-  "report/img/demo-race-col.png", figs$race_collapsed,
+  "report/img/race-col.png", figs$race_collapsed,
   width = 6, height = 4, dpi = 100
 )
 
 ggsave(
-  "report/img/demo-hisp.png", figs$hispanic_origin,
+  "report/img/hisp.png", figs$hispanic_origin,
   width = 4.5, height = 4, dpi = 100
 )
 

@@ -92,7 +92,17 @@ imap(figs, \(x, i) {
   i <- gsub("_", "-", i)
   ggsave(
     paste0("report/img/", i, ".png"), x,
-    width = 7, height = 4.5, dpi = 100
+    width = 7, height = 4, dpi = 100
+  )
+})
+```
+
+```{r include=FALSE}
+imap(figs, \(x, i) {
+  i <- paste0(gsub("_", "-", i), "-pdf")
+  ggsave(
+    paste0("report/img/", i, ".png"), x,
+    width = 6.3, height = 3.5, dpi = 100
   )
 })
 ```

@@ -1,0 +1,41 @@
+---
+format:
+  html:
+    title-block-banner: img/fountain.svg
+    toc: true
+    toc-depth: 4
+    toc-location: right
+    mainfont: Lato
+    resource-path: 
+      - img/
+    fig-align: center
+    embed-resources: true
+    link-external-newwindow: true
+    other-links:
+      - text: "Community Health Assessment"
+        href: https://kcmo.gov/cha
+    css: style.css
+brand: _brand.yml
+execute:
+  echo: false
+---
+
+```{r include=FALSE}
+# Source report text from Word doc
+doc <- setmeup::convert_doc(
+  file1 = "../../data/1-source/report-text.docx",
+  file2 = "../../data/1-source/report-text.md"
+)
+
+# Source text replacements
+source("replace-web.R")
+```
+
+```{r}
+doc <- stringr::str_replace_all(doc, replacements)
+```
+
+```{r results='asis'}
+cat(doc, sep = "\n")
+```
+

@@ -23,7 +23,7 @@ execute:
 lapply(list.files("..", pattern = "^fn", full.names = TRUE), source)
 
 # Source report text from Word doc
-md <- doc_to_md(
+md <- setmeup::convert_doc(
   file1 = "../../data/1-source/report-text.docx",
   file2 = "../../data/1-source/report-text.md"
 )

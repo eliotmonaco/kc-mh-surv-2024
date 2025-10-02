@@ -206,7 +206,7 @@ plot_sample <- function(df, var) {
   p
 }
 
-plot_data <- function(df, var, text_size = 11) {
+plot_data <- function(df, var, base_text_size = 11, label_text_size = 11) {
   plot <- cb$viz$plot[cb$viz$var == var]
   gp <- cb$viz$group[cb$viz$var == var]
   pal <- switch(
@@ -243,7 +243,7 @@ plot_data <- function(df, var, text_size = 11) {
       ggplot(aes(x = .data[[var]], y = pct, label = pct_fmt, fill = fcolor)) |>
       mhs_barplot(
         legend = FALSE,
-        base_font_size = text_size
+        base_font_size = base_text_size
       ) +
       scale_fill_identity(
         name = label_wrap(msr, 16),
@@ -253,7 +253,7 @@ plot_data <- function(df, var, text_size = 11) {
       ) +
       geom_text(
         aes(label = pct_fmt, vjust = lpos),
-        size = text_size,
+        size = label_text_size,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
@@ -267,12 +267,12 @@ plot_data <- function(df, var, text_size = 11) {
       ggplot(aes(x = pct, y = reason, label = pct_fmt, fill = fcolor)) |>
       mhs_barplot(
         legend = FALSE,
-        base_font_size = text_size
+        base_font_size = base_text_size
       ) +
       scale_fill_identity() +
       geom_text(
         aes(label = pct_fmt, hjust = lpos),
-        size = text_size,
+        size = label_text_size,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"
@@ -287,7 +287,7 @@ plot_data <- function(df, var, text_size = 11) {
 
     p <- df |>
       ggplot(aes(x = "", y = pct, label = pct_fmt, fill = fcolor)) |>
-      mhs_pie_chart(base_font_size = text_size) +
+      mhs_pie_chart(base_font_size = base_text_size) +
       scale_fill_identity(
         name = label_wrap(msr, 16),
         labels = df[[var]],
@@ -297,7 +297,7 @@ plot_data <- function(df, var, text_size = 11) {
       geom_text(
         aes(label = pct_fmt),
         position = position_stack(vjust = .5),
-        size = text_size,
+        size = label_text_size,
         size.unit = "pt",
         color = df$lcolor,
         fontface = "bold"

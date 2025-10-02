@@ -49,7 +49,7 @@ ccbhc_map <- readRDS("../../data/2-final/ccbhc_map.rds")
 ```
 
 ```{r}
-md <- doc_to_md(
+md <- setmeup::convert_doc(
   file1 = "../../data/1-source/report-text.docx",
   file2 = "../../data/1-source/report-text.md"
 )
