@@ -337,7 +337,6 @@ plot_grouped_data <- function(
       mutate(lcolor = contrast_color(fcolor)) |>
       # framed labels
       mutate(lbl2 = if_else(pct <= label_min, pct_fmt, "")) |>
-      # mutate(fcolor2 = if_else(pct > label_min, NA, paste0(fcolor, "AA"))) |>
       mutate(fcolor2 = if_else(pct > label_min, NA, fcolor)) |>
       mutate(lcolor2 = if_else(pct > label_min, NA, contrast_color(fcolor)))
 
@@ -371,7 +370,6 @@ plot_grouped_data <- function(
         fontface = "bold"
       ) +
       geom_label(
-      # ggrepel::geom_label_repel(
         aes(label = lbl2),
         position = position_stack(
           vjust = .5 + offset,
@@ -381,8 +379,7 @@ plot_grouped_data <- function(
         fill = df$fcolor2,
         border.color = colorspace::darken(df$fcolor2, .25),
         fontface = "bold",
-        show.legend = FALSE#,
-        # direction = switch(dir, h = "y", v = "x")
+        show.legend = FALSE
       )
 
     if (dir == "h") {
@@ -405,7 +402,6 @@ plot_grouped_data <- function(
     pal <- mhs_palette("mellow", ncolors)
 
     df <- df |>
-      # mutate(label = paste0(round_ties_away(pct), "% ")) |>
       mutate(fcolor = pal[as.numeric(df[[fctr]])]) |>
       mutate(fcolor = factor(fcolor, levels = unique(fcolor))) |>
       mutate(lcolor = contrast_color(fcolor))

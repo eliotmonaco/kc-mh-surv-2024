@@ -22,7 +22,8 @@
         #h(1fr)
         #counter(page).display()
       ]
-    }
+    },
+    footer-descent: 50%
   )
 
   set list(indent: .25in)
@@ -76,11 +77,42 @@
   }
 
   outline(
-    depth: 4,
+    depth: 3,
     indent: n => n * 1.2em
   )
 
   pagebreak()
+
+  // HEADINGS
+
+  show heading.where(level: 1): it => block(
+    width: 100%,
+    fill: rgb("#3A80BF")
+  )[
+    #set text(fill: white, size: 17pt)
+    #pad(top: 5pt, bottom: 5pt, upper(it))
+  ]
+
+  show heading.where(level: 2): it => block(
+    width: 100%,
+    fill: rgb("#F4C134")
+  )[
+    #set text(fill: black, size: 15.5pt)
+    #pad(top: 5pt, bottom: 5pt, it)
+  ]
+
+  show heading.where(level: 3): it => block(
+    width: 100%,
+    fill: rgb("#8DBD3f")
+  )[
+    #set text(fill: white, size: 14pt)
+    #pad(top: 5pt, bottom: 5pt, it)
+  ]
+
+  show heading.where(level: 1): it => {
+    pagebreak(weak: true)
+    it
+  }
 
   // DOCUMENT BODY
 
@@ -131,5 +163,13 @@
   )
 }
 
+#let figblock = {
+  block.with(
+    width: 100%,
+    breakable: false,
+    above: 30pt,
+    below: 30pt
+  )
+}
 
 

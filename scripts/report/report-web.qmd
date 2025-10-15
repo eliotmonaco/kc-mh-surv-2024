@@ -32,6 +32,7 @@ source("replace-web.R")
 ```
 
 ```{r}
+# Insert figures and captions
 doc <- stringr::str_replace_all(doc, replacements)
 ```
 

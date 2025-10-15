@@ -9,6 +9,7 @@ format:
       include: false
     resource-path: 
       - img/
+    keep-typ: false
 ---
 
 ```{r}
@@ -23,6 +24,7 @@ source("replace-pdf.R")
 ```
 
 ```{r}
+# Insert figures and captions
 doc <- stringr::str_replace_all(doc, replacements)
 ```
 
@@ -39,8 +41,6 @@ doc <- paste(doc, collapse = "\n")
 ```
 
 ```{=typst}
-#page[
-  `r doc`
-]
+`r doc`
 ```
 
