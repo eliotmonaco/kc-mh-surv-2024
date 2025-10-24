@@ -1,0 +1,65 @@
+---
+title: "Plot disaggregated results"
+output:
+  html_notebook:
+    toc: false
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.width = 10,
+  fig.height = 9
+)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(setmeup)
+library(patchwork)
+```
+
+```{r include=FALSE}
+lapply(list.files(pattern = "^fn"), source)
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
+```
+
+```{r}
+# # Join prompts for Q11
+n <- 11
+
+p1 <- paste0("^", n, "$")
+s1 <- cb$viz[grepl(p1, cb$viz$number), "prompt", drop = TRUE]
+p2 <- paste0("^", n, "_")
+s2 <- cb$viz[grepl(p2, cb$viz$number), "prompt", drop = TRUE]
+cb$viz$header[grepl(p2, cb$viz$number)] <- paste(s1, s2)
+```
+
+```{r}
+i <- which(
+  cb$viz$data == "factor" &
+    !grepl("_age$", cb$viz$var) &
+    !grepl("si_", cb$viz$var)
+)
+qvars <- cb$viz$var[i]
+
+mhplots <- lapply(qvars, \(x) {
+  t <- cb$viz$header[cb$viz$var == x]
+  plot_disagg_data(mhsurv, var = x, label_min = 5, offset = 0, title = t)
+})
+```
+
+## {.tabset}
+
+```{r results='asis', echo=FALSE}
+for (i in 1:length(mhplots)) {
+  cat(paste0("### ", toupper(qvars[i]), "\n\n"))
+  print(mhplots[[i]])
+  plot.new()
+  dev.off()
+}
+```

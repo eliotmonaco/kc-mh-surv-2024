@@ -206,7 +206,11 @@ plot_sample <- function(df, var) {
   p
 }
 
-plot_data <- function(df, var, base_text_size = 11, label_text_size = 11) {
+plot_data <- function(
+    df,
+    var,
+    base_text_size = 11,
+    label_text_size = 11) {
   plot <- cb$viz$plot[cb$viz$var == var]
   gp <- cb$viz$group[cb$viz$var == var]
   pal <- switch(
@@ -438,6 +442,109 @@ plot_grouped_data <- function(
   }
 
   p
+}
+
+plot_disagg_data <- function(
+    df,
+    var,
+    label_min, # minimum value for normal labels
+    offset = 0, # offset value for framed labels
+    title) {
+  # Disaggregates
+  fctr <- list(
+    All = NULL, Sex = "birth_sex", Age = "age1",
+    "Race/\nethnicity" = "re_bwo",
+    "Hispanic\norigin" = "hispanic_origin",
+    "HOI region" = "hoi_region"
+  )
+
+  ls <- imap(fctr, \(f, i) {
+    df <- summarize_results(df, var = var, gp_fctr = f)
+
+    # Color palette
+    gp <- cb$viz$group[cb$viz$var == var]
+    pal <- switch(
+      gp,
+      gen = "ocean", tr = "blueorange",
+      si = "sunburst", sm = "candy", slp = "icecream"
+    )
+    msr <- cb$key$measure[cb$key$var2 == var]
+    ncolors <- length(levels(df[[var]]))
+    pal <- mhs_palette(pal, ncolors)
+
+    df <- df |>
+      mutate(
+        grouping_factor = i,
+        # normal labels
+        lbl = if_else(pct > label_min, pct_fmt, ""),
+        fcolor = pal[as.numeric(df[[var]])],
+        fcolor = factor(fcolor, levels = unique(fcolor)),
+        lcolor = contrast_color(fcolor),
+        # framed labels
+        lbl2 = if_else(pct <= label_min, pct_fmt, ""),
+        fcolor2 = if_else(pct > label_min, NA, paste0(fcolor, "88")),
+        lcolor2 = if_else(pct > label_min, NA, contrast_color(fcolor))
+      )
+
+    if (i != "All") {
+      yvar <- f; ylab <- i
+    } else {
+      yvar <- "grouping_factor"; ylab <- ""
+    }
+
+    df |>
+      ggplot(aes(
+        x = pct, y = .data[[yvar]], label = lbl, fill = fcolor
+      )) |>
+      mhs_barplot(
+        bar_position = "stack",
+        bar_reverse = TRUE
+      ) +
+      scale_fill_identity(
+        name = label_wrap(msr, 16),
+        labels = df[[var]],
+        breaks = df$fcolor,
+        guide = "legend"
+      ) +
+      geom_text(
+        aes(label = lbl),
+        position = position_stack(
+          vjust = .5,
+          reverse = TRUE
+        ),
+        color = df$lcolor,
+        fontface = "bold"
+      ) +
+      geom_label(
+        aes(label = lbl2),
+        position = position_stack(
+          vjust = .5 + offset,
+          reverse = TRUE
+        ),
+        text.color = df$lcolor2,
+        fill = df$fcolor2,
+        border.color = colorspace::darken(df$fcolor2, .25),
+        fontface = "bold",
+        show.legend = FALSE
+      ) +
+      labs(x = "%", y = ylab) +
+      theme(
+        axis.title.x = element_text(margin = margin(t = 10)),
+        axis.title.y = element_text(margin = margin(r = 10))
+      )
+  })
+
+  hts <- unit(c(1, 2, 6, 3, 2, 3) * .3 + .2, rep("inches", 5))
+
+  wrap_plots(ls, ncol = 1, guides = "collect", axes = "collect_x") +
+    plot_layout(heights = hts) +
+    plot_annotation(
+      title = str_wrap(title, width = 80),
+      theme = theme(plot.title = element_text(
+        hjust = .5,
+        size = rel(1.2)
+      ))
+    )
 }
 
 plot_hist <- function(df, x, y) {
