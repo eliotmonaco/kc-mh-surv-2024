@@ -1,5 +1,5 @@
 ---
-title: "Correlations"
+title: "Additional analyses"
 output: html_notebook
 ---
 
@@ -27,6 +27,49 @@ lapply(list.files(pattern = "^fn"), source)
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 slpdur <- readRDS("../data/2-final/sleep_duration_stats.rds")
 pop <- readRDS("../data/2-final/kc_population_acs1_2023.rds")
+```
+
+# Anxiety & depression
+
+Compare low-frequency and moderate- to high-frequency responses across questions about anxiety and depression.
+
+```{r}
+# All responses and numeric values for relevant questions
+lapply(mhsurv |> select(q4_1:q7) |> colnames(), \(x) {
+  levels(mhsurv[[x]])
+})
+```
+
+```{r}
+# All non-NA responses
+df <- mhsurv |>
+  filter(if_all(q4_1:q7, ~ !is.na(.x)))
+
+# Low freq
+n_low <- df |>
+  filter(
+    if_all(q4_1:q6, ~ as.numeric(.x) %in% 1:2),
+    as.numeric(q7) == 1
+  ) |>
+  nrow()
+
+# Mod-high freq
+n_high <- df |>
+  filter(
+    if_all(q4_1:q6, ~ as.numeric(.x) %in% 3:5),
+    as.numeric(q7) %in% 2:3
+  ) |>
+  nrow()
+
+# Table
+tbl <- data.frame(
+  frequency = c("low", "mod-high"),
+  n = c(197, 35)
+)
+
+tbl$pct <- setmeup::pct(tbl$n, nrow(df), 1)
+
+tbl
 ```
 
 # Descriptive stats
