@@ -118,7 +118,7 @@ map2 <- basemaps::basemap_ggplot(
   ) +
   scale_fill_manual(
     values = pal,
-    name = "CCBHCs"
+    name = "Organization"
   )
 
 map2
@@ -126,7 +126,7 @@ map2
 
 ```{r}
 ggsave(
-  "report/assets/map-ccbhc.png", map2,
+  "report/img/map-ccbhc.png", map2,
   height = 6, dpi = 100
 )
 ```
