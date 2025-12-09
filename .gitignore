@@ -7,6 +7,7 @@
 /data/
 /output/
 
+# File types
 *.html
 *.pdf
 *.png
@@ -17,4 +18,9 @@
 *.xlsx
 *.pptx
 
+# Exceptions
 !/docs/*.html
+!/docs/*.png
+!/docs/*.svg
+!/scripts/report/img/*.png
+!/scripts/report/img/*.svg
