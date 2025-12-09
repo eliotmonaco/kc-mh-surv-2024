@@ -20,7 +20,7 @@
 
 # Exceptions
 !/docs/*.html
-!/docs/*.png
-!/docs/*.svg
+!/docs/img/*.png
+!/docs/img/*.svg
 !/scripts/report/img/*.png
 !/scripts/report/img/*.svg
