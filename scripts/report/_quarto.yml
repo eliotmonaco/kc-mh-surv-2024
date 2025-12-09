@@ -1,7 +1,7 @@
 project:
   title: "Kansas City Mental Health Survey"
   type: website
-  output-dir: docs
+  output-dir: "../../docs"
 
 title: "Kansas City Mental Health Survey"
 subtitle: "2024 Report"
