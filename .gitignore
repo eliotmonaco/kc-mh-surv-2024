@@ -16,3 +16,8 @@
 *.docx
 *.xlsx
 *.pptx
+
+# Exception for HTML report
+!/scripts/report/report-web.html
+!/scripts/report/report-pdf.pdf
+
