@@ -18,6 +18,10 @@ format:
         href: https://kcmo.gov/cha
     css: style.css
     output-file: "KC-Mental-Health-Survey-2024-Report"
+    abstract-title: "Suggested citation"
+    abstract: >
+      Office of Population Health Science. (2025). *Kansas City Mental Health
+      Survey: 2024 Report.* City of Kansas City, Missouri, Health Department.
 
 brand: _brand.yml
 execute:

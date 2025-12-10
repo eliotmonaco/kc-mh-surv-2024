@@ -2,6 +2,7 @@
   title: "Title",
   subtitle: "Subtitle",
   author: "Author",
+  date: "Date",
   body,
 ) = {
   // METADATA
@@ -51,7 +52,14 @@
       inset: 0pt
     )[
       #align(bottom)[#image("img/fountain.svg", height: 2in)]
-    ]
+    ],
+    footer: context [
+      #set text(10pt)
+      #align(center)[Suggested citation:]
+      Office of Population Health Science. (2025). _Kansas City Mental Health
+      Survey: 2024 Report._ City of Kansas City, Missouri, Health Department.
+    ],
+    footer-descent: 0%
   )[
     #set text(fill: white, weight: "bold")
     #set align(center + horizon)
@@ -59,12 +67,13 @@
     #grid(
       columns: 1, rows: 1,
       block[
-        #v(.3in)
+        #v(.1in)
         #text(size: 30pt)[#title] \
         #v(.01in)
         #text(size: 26pt)[2024 Report] \  // no quarto/pandoc support yet for
         #v(.1in)                          // the yaml param subtitle
         #text(size: 16pt)[#author.replace("\\", "")]
+        #text(size: 12pt)[#date]
       ]
     )
   ]

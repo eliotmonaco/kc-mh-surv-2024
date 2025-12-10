@@ -3,6 +3,8 @@
 
   $if(author)$ author: "$author$", $endif$
 
+  $if(date)$ date: "$date$", $endif$
+
   doc,
 )
 
