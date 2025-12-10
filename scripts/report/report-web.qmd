@@ -12,9 +12,12 @@ format:
     embed-resources: true
     link-external-newwindow: true
     other-links:
+      - text: "Download PDF"
+        href: report-pdf.qmd
       - text: "Community Health Assessment"
         href: https://kcmo.gov/cha
     css: style.css
+
 brand: _brand.yml
 execute:
   echo: false
