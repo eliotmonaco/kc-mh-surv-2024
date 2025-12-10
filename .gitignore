@@ -6,21 +6,7 @@
 # Folders
 /data/
 /output/
+/scripts/*.html
+/scripts/*/*.html
+/scripts/report/*.pptx
 
-# File types
-*.html
-*.pdf
-*.png
-*.svg
-*.jpg
-*.ppt
-*.docx
-*.xlsx
-*.pptx
-
-# Exceptions
-!/docs/*.html
-!/docs/img/*.png
-!/docs/img/*.svg
-!/scripts/report/img/*.png
-!/scripts/report/img/*.svg
