@@ -10,6 +10,7 @@ format:
     resource-path: 
       - img/
     keep-typ: false
+    output-file: "KC-Mental-Health-Survey-2024-Report"
 ---
 
 ```{r}

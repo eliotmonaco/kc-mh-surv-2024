@@ -13,10 +13,11 @@ format:
     link-external-newwindow: true
     other-links:
       - text: "Download PDF"
-        href: report-pdf.qmd
+        href: KC-Mental-Health-Survey-2024-Report.pdf
       - text: "Community Health Assessment"
         href: https://kcmo.gov/cha
     css: style.css
+    output-file: "KC-Mental-Health-Survey-2024-Report"
 
 brand: _brand.yml
 execute:
