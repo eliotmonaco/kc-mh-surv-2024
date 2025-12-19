@@ -25,9 +25,11 @@ cb <- readRDS("../data/2-final/mhs_codebook.rds")
 
 ```{r}
 vars <- cb$key |>
-  filter(group == "mh", !grepl("_fac$", var2)) |>
+  filter(group == "mh", !grepl("_fac$|^si_", var2)) |>
   pull(var2)
 ```
+
+# Analysis
 
 T-tests are performed on all questions. When the question has factor data, it's first converted to numeric. Chi-squared tests are performed on questions with factor data only (rating scales, yes/no, etc.).
 
@@ -77,6 +79,25 @@ results <- list_rbind(ls)
 ```
 
 ```{r}
+# Pull question text
+q11text <- cb$viz |>
+  filter(grepl("^q11_", var)) |>
+  mutate(text = paste0(
+    str_to_sentence(nickname), " (", prompt_abbr, ".)"
+  )) |>
+  select(var, text)
+
+qtext <- cb$viz |>
+  filter(var %in% vars) |>
+  mutate(text = paste0(str_to_sentence(nickname), " (", header, ")")) |>
+  select(var, text) |>
+  rows_update(q11text, by = "var")
+
+results <- results |>
+  left_join(qtext, by = c("question" = "var"))
+```
+
+```{r}
 p <- c(
   "(?i)Pearson's Chi-squared test" = "$χ^2$",
   "(?i)Welch two sample t-test" = "T-test"
@@ -86,7 +107,8 @@ results |>
   mutate(
     method = str_replace_all(method, p)
   ) |>
-  gt() |>
+  select(-question) |>
+  gt(groupname_col = "text") |>
   fmt_markdown("method") |>
   tab_style(
     style = cell_fill("lightgreen"),
@@ -95,7 +117,72 @@ results |>
       columns = p.value
     )
   ) |>
-  tab_options(container.height = px(800)) |>
-  opt_stylize(style = 1, color = "gray")
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_row_groups()
+  ) |>
+  tab_options(container.height = px(1000)) |>
+  opt_stylize(style = 6, color = "gray")
 ```
+
+# Key
+
+```{r}
+vars_fctr <- vars[sapply(vars, \(x) is.factor(mhsurv[[x]]))]
+
+fctr_levels <- lapply(vars_fctr, \(x) {
+  data.frame(
+    number = as.numeric(na.omit(fct_unique(mhsurv[[x]]))),
+    response = as.character(na.omit(fct_unique(mhsurv[[x]])))
+  )
+})
+
+names(fctr_levels) <- vars_fctr
+```
+
+```{r}
+fctrs_unq <- lapply(fctr_levels, \(x) {
+  imap(fctr_levels, \(y, i) {
+    if (isTRUE(all.equal(x, y))) {
+      i
+    }
+  }) |>
+    compact() |>
+    unlist()
+}) |>
+  unique()
+```
+
+```{r}
+fctr_levels <- lapply(fctrs_unq, \(x) {
+  t <- which(names(fctr_levels) == x[1])
+  
+  n <- cb$viz |>
+    filter(var %in% x) |>
+    pull(nickname) |>
+    unique() |>
+    str_to_sentence()
+  
+  fctr_levels[[t]] |>
+    gt() |>
+    tab_header(paste(n, collapse = ", "))
+})
+```
+
+Numeric levels for sex.
+
+```{r}
+data.frame(
+  number = as.numeric(na.omit(fct_unique(mhsurv$birth_sex))),
+  group = as.character(na.omit(fct_unique(mhsurv$birth_sex)))
+) |>
+  gt()
+```
+
+Numeric levels for factor responses.
+
+```{r}
+fctr_levels
+```
+
 
