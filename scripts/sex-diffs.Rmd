@@ -1,0 +1,101 @@
+---
+title: "Tests for differences by sex"
+output:
+  html_notebook:
+    toc: false
+---
+
+```{r setup}
+# knitr::opts_chunk$set(
+#   echo = FALSE,
+#   fig.width = 10,
+#   fig.height = 5
+# )
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(gt, exclude = "pct")
+```
+
+```{r}
+mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+cb <- readRDS("../data/2-final/mhs_codebook.rds")
+```
+
+```{r}
+vars <- cb$key |>
+  filter(group == "mh", !grepl("_fac$", var2)) |>
+  pull(var2)
+```
+
+T-tests are performed on all questions. When the question has factor data, it's first converted to numeric. Chi-squared tests are performed on questions with factor data only (rating scales, yes/no, etc.).
+
+```{r}
+ls <- lapply(vars, \(x) {
+  df <- mhsurv |>
+    rename(var = all_of(x)) |>
+    select(birth_sex, var) |>
+    drop_na()
+
+  # T-test
+  dft <- df |>
+    mutate(var = as.numeric(var))
+
+  dft <- t.test(var ~ birth_sex, data = dft) |>
+    broom::tidy() |>
+    relocate(method)
+  
+  # Chi-squared test
+  if (is.factor(df$var)) {
+    dfx <- df |>
+      count(birth_sex, var, .drop = FALSE) |>
+      replace_na(list(n = 0)) |>
+      pivot_wider(
+        names_from = var,
+        values_from = n
+      ) |>
+      column_to_rownames("birth_sex")
+
+    dfx <- dfx |>
+      chisq.test() |>
+      broom::tidy() |>
+      relocate(method)
+  } else {
+    dfx <- chisq.test(data.frame(x = c(1, 1), y = c(1, 1))) |>
+      broom::tidy()
+    
+    dfx[!is.na(dfx)] <- NA
+  }
+  
+  # Join results
+  full_join(dft, dfx, by = join_by(method, statistic, p.value, parameter)) |>
+    mutate(question = x, .before = 1)
+})
+
+results <- list_rbind(ls)
+```
+
+```{r}
+p <- c(
+  "(?i)Pearson's Chi-squared test" = "$χ^2$",
+  "(?i)Welch two sample t-test" = "T-test"
+)
+
+results |>
+  mutate(
+    method = str_replace_all(method, p)
+  ) |>
+  gt() |>
+  fmt_markdown("method") |>
+  tab_style(
+    style = cell_fill("lightgreen"),
+    locations = cells_body(
+      rows = p.value < .05,
+      columns = p.value
+    )
+  ) |>
+  tab_options(container.height = px(800)) |>
+  opt_stylize(style = 1, color = "gray")
+```
+
