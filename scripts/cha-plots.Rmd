@@ -23,6 +23,8 @@ source("fn1.R")
 # mh_sum <- readRDS("../data/2-final/summarized_results.rds")
 # mh <- readRDS("../data/2-final/scored_results.rds")
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
+kc_tracts_2023 <- readRDS("../data/1-source/kc_tracts_2023.rds")
+acs5_tract_2023 <- readRDS("../data/1-source/acs5_tract_2023.rds")
 ```
 
 ```{r}
@@ -33,8 +35,8 @@ mhplots <- list()
 # Map
 
 ```{r}
-kctracts <- st_transform(kcData::sf_tract_2023, 4326)
-kcpop <- kcData::acs5_tract_2023 |>
+kctracts <- st_transform(kc_tracts_2023, 4326)
+kcpop <- acs5_tract_2023 |>
   filter(grepl("^B01003", variable))
 ```
 

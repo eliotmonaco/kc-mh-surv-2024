@@ -14,7 +14,6 @@ knitr::opts_chunk$set(
 ```{r message=FALSE}
 library(tidyverse)
 # library(setmeup)
-library(kcData)
 ```
 
 ```{r}
@@ -28,6 +27,7 @@ mhfigs2 <- readRDS("../data/2-final/mh_figures_age.rds")
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
+kc_city_2024 <- readRDS("../data/1-source/kc_city_2024.rds")
 ```
 
 ```{r}
@@ -108,7 +108,7 @@ mhfigs1$q12$plot  |>
 ## CCBHC map
 
 ```{r fig.height=10}
-ggplot(kcData::sf_city_2024) +
+ggplot(kc_city_2024) +
   geom_sf(linewidth = 1) +
   geom_point(
     data = mhsurv |> drop_na(q12),

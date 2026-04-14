@@ -12,7 +12,6 @@ Prepare results from the KCHD 2024 Mental Health Survey for analysis.
 ```{r message=FALSE}
 library(tidyverse)
 library(readxl)
-library(kcData)
 library(sf)
 ```
 
@@ -35,6 +34,12 @@ cb <- lapply(sh, \(x) read_excel(
   sheet = x
 ))
 names(cb) <- sh
+```
+
+Import ZCTAs.
+
+```{r}
+kc_zctas_2024 <- readRDS("../data/1-source/kc_zctas_2024.rds")
 ```
 
 Import HOI regions.
@@ -105,7 +110,7 @@ Invalid ZIP codes.
 
 ```{r}
 mhsurv |>
-  filter(!zip %in% geoids$zcta$ids2024) |>
+  filter(!zip %in% kc_zctas_2024$GEOID20) |>
   nrow()
 ```
 
@@ -366,7 +371,7 @@ mhsurv <- mhsurv |>
 
 ```{r}
 mhsurv <- mhsurv |>
-  mutate(zip = factor(zip, levels = geoids$zcta$ids2024))
+  mutate(zip = factor(zip, levels = kc_zctas_2024$GEOID20))
 ```
 
 ## HOI region

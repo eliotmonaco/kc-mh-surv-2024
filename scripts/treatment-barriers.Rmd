@@ -6,7 +6,6 @@ output: html_notebook
 ```{r message=FALSE}
 library(tidyverse)
 library(sf)
-library(kcData)
 library(patchwork)
 ```
 
@@ -18,6 +17,7 @@ source("fn1.R")
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 cb <- readRDS("../data/2-final/mhs_codebook.rds")
 ccbhc_sites <- readRDS("../data/2-final/ccbhc_sites.rds")
+kc_city_2024 <- readRDS("../data/1-source/kc_city_2024.rds")
 ```
 
 ```{r}
@@ -204,7 +204,7 @@ mhplot$q12
 ## Map
 
 ```{r}
-kcmap <- sf_city_2024
+kcmap <- kc_city_2024
 ```
 
 ```{r}

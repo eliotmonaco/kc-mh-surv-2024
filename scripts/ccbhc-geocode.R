@@ -4,6 +4,7 @@ library(tidygeocoder)
 library(tidyverse)
 
 ccbhc_sites <- read.csv("data/1-source/ccbhc-locations.csv")
+kc_city_2024 <- readRDS("data/1-source/kc_city_2024.rds")
 
 ccbhc_sites_geo <- geocode(
   ccbhc_sites,
@@ -20,7 +21,7 @@ ccbhc_sites_geo <- sf::st_as_sf(
   crs = 4269
 )
 
-ggplot(kcData::sf_city_2024) +
+ggplot(kc_city_2024) +
   geom_sf(linewidth = 1) +
   geom_sf(data = ccbhc_sites_geo)
 

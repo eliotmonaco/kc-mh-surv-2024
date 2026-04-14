@@ -6,7 +6,6 @@ output: html_notebook
 ```{r message=FALSE}
 library(tidyverse)
 library(sf)
-library(kcData)
 ```
 
 ```{r}
@@ -16,10 +15,11 @@ source("fn1.R")
 ```{r}
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 ccbhcs <- readRDS("../data/2-final/ccbhc_sites.rds")
+kc_city_2024 <- readRDS("../data/1-source/kc_city_2024.rds")
 ```
 
 ```{r}
-kcmap <- sf_city_2024
+kcmap <- kc_city_2024
 ```
 
 ```{r}
@@ -75,7 +75,7 @@ map1
 ```
 
 ```{r}
-kcmap2 <- st_transform(sf_city_2024, crs = st_crs(3857))
+kcmap2 <- st_transform(kc_city_2024, crs = st_crs(3857))
 ext <- st_bbox(kcmap2)
 exp <- 1000
 ext[1] <- ext[1] - exp

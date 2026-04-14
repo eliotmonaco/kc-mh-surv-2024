@@ -11,7 +11,6 @@ knitr::opts_chunk$set(
 
 ```{r message=FALSE}
 library(tidyverse)
-library(kcData)
 ```
 
 ```{r}
@@ -23,6 +22,7 @@ mh_sum <- readRDS("../../data/2-final/summarized_results.rds")
 cbq <- readRDS("../../data/2-final/codebook_question_data.rds")
 disaggs <- readRDS("../../data/2-final/disaggregate_data_for_summary.rds")
 surv_rgn <- readRDS("../../data/2-final/survey_region_data.rds")
+kc_city_2024 <- readRDS("../data/1-source/kc_city_2024.rds")
 ```
 
 Column {.tabset data-width=800}
@@ -80,7 +80,7 @@ Column {data-width=400}
 ```{r}
 ggplot() +
   geom_sf(
-    data = map_city_2024,
+    data = kc_city_2024,
     fill = "darkgrey",
     color = "red"
   ) +

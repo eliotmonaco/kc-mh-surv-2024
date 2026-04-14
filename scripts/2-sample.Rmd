@@ -25,7 +25,6 @@ knitr::opts_knit$set(
 ```{r message=FALSE}
 library(tidyverse)
 library(readxl)
-library(kcData)
 library(setmeup)
 library(sf)
 library(gt, exclude = "pct")
@@ -39,6 +38,9 @@ lapply(list.files(pattern = "^fn"), source)
 mhsurv <- readRDS("../data/2-final/mh_survey_results.rds")
 cb <- readRDS("../data/2-final/mhs_codebook.rds")
 hoi_regions <- st_read("../data/1-source/hoi_regions.shp", quiet = TRUE)
+kc_city_2024 <- readRDS("../data/1-source/kc_city_2024.rds")
+acs1_city_2024 <- readRDS("../data/1-source/acs1_city_2024.rds")
+acs5_zcta_2024 <- readRDS("../data/1-source/acs5_zcta_2024.rds")
 ```
 
 # Summarize
@@ -419,44 +421,44 @@ mhsurv |>
   count(hoi_region, .drop = FALSE)
 ```
 
-## ZCTA
+<!-- ## ZCTA -->
 
-Pull the ACS population estimates by ZCTA for Kansas City.
+<!-- Pull the ACS population estimates by ZCTA for Kansas City. -->
 
-```{r}
-popzcta <- acs5_zcta_2023 |>
-  filter(variable == "B01001_001") |>
-  select(GEOID, estimate) |>
-  mutate(kc_total = poptotal)
-```
+<!-- ```{r} -->
+<!-- popzcta <- acs5_zcta_2023 |> -->
+<!--   filter(variable == "B01001_001") |> -->
+<!--   select(GEOID, estimate) |> -->
+<!--   mutate(kc_total = poptotal) -->
+<!-- ``` -->
 
-Find the percentage of each ZCTA population in KC sampled.
+<!-- Find the percentage of each ZCTA population in KC sampled. -->
 
-```{r}
-geo$zip <- mhsurv |>
-  summarize_results("zip", drop = FALSE, na_rm = FALSE) |>
-  left_join(
-    sf_zcta_2024 |>
-      st_drop_geometry() |>
-      select(GEOID20, kc_area_pct),
-    by = c("zip" = "GEOID20"),
-    keep = TRUE # preserve join var as factor
-  ) |>
-  left_join(
-    popzcta,
-    by = c("zip" = "GEOID"),
-    keep = TRUE # preserve join var as factor
-  ) |>
-  select(-GEOID, -GEOID20) |>
-  mutate(pct_kc = pct(estimate, kc_total, 5) * kc_area_pct / 100)
+<!-- ```{r} -->
+<!-- geo$zip <- mhsurv |> -->
+<!--   summarize_results("zip", drop = FALSE, na_rm = FALSE) |> -->
+<!--   left_join( -->
+<!--     sf_zcta_2024 |> -->
+<!--       st_drop_geometry() |> -->
+<!--       select(GEOID20, kc_area_pct), -->
+<!--     by = c("zip" = "GEOID20"), -->
+<!--     keep = TRUE # preserve join var as factor -->
+<!--   ) |> -->
+<!--   left_join( -->
+<!--     popzcta, -->
+<!--     by = c("zip" = "GEOID"), -->
+<!--     keep = TRUE # preserve join var as factor -->
+<!--   ) |> -->
+<!--   select(-GEOID, -GEOID20) |> -->
+<!--   mutate(pct_kc = pct(estimate, kc_total, 5) * kc_area_pct / 100) -->
 
-geo$zip
-```
+<!-- geo$zip -->
+<!-- ``` -->
 
-```{r}
-geo$zip |>
-  filter(kc_area_pct >= 20, estimate >= 1100)
-```
+<!-- ```{r} -->
+<!-- geo$zip |> -->
+<!--   filter(kc_area_pct >= 20, estimate >= 1100) -->
+<!-- ``` -->
 
 ## Council district
 
@@ -513,7 +515,7 @@ Map HOI regions and deidentified respondent residence locations.
 ```{r fig.width=4, fig.height=6}
 ggplot() +
   geom_sf(
-    data = sf_city_2023,
+    data = kc_city_2024,
     fill = "pink",
     color = "red",
     linewidth = 1
@@ -535,9 +537,9 @@ ggplot() +
 ### Choropleth map
 
 ```{r}
-geo_zcta <- st_transform(sf_zcta_2023, 4326)
+geo_zcta <- st_transform(kc_zctas_2024, 4326)
 
-popzcta <- acs5_zcta_2023 |>
+popzcta <- acs5_zcta_2024 |>
   filter(grepl("^B01003", variable))
 ```
 
@@ -593,7 +595,7 @@ ggplot(geo_zcta) +
 Map of survey sample with OSM base layer and city boundary.
 
 ```{r}
-geo_kc <- st_transform(sf_city_2024, crs = st_crs(3857))
+geo_kc <- st_transform(kc_city_2024, crs = st_crs(3857))
 ext <- st_bbox(geo_kc)
 exp <- 1000
 ext[1] <- ext[1] - exp
